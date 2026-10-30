@@ -1,5 +1,5 @@
-# Interface improvement
-- [ ] Shared Arabic RTL navigation and consistent public/auth pages.
-- [ ] Real-data schedule with mobile and desktop views.
-- [ ] Swap request and member management interfaces using existing capabilities.
-- [ ] Verify rendering, available flows, and existing tests; disclose unverified operations.
+# Roadmap
+- [x] Fix build errors; tests pass.
+- [x] Smoke test public pages and sign-in redirect.
+- [ ] Signed-in flows (schedule, swaps, approvals, live sync) — blocked: no accounts exist until owner adds ADMIN_SETUP_TOKEN and claims admin at /setup.
+- [ ] Import real November 2026 schedule — blocked: uploaded file has only a title, no shifts.
