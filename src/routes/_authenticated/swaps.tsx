@@ -35,7 +35,7 @@ function Swaps() {
   }
   async function reviewSubmit(e: React.FormEvent) {
     e.preventDefault(); if (!review) return; setBusy(true); setError(null);
-    try { const result = await supabase.rpc("review_swap", { _request_id: review.id, _approve: review.approve, _note: note.trim() || undefined }); if (result.error) throw result.error; await refresh(); setReview(null); toast.success("حُفظت مراجعة الطلب."); } catch (e) { setError(errMsg(e)); } finally { setBusy(false); }
+    try { const result = await supabase.rpc("review_swap", { _request_id: review.id, _approve: review.approve, ...(note.trim() ? { _note: note.trim() } : {}) }); if (result.error) throw result.error; await refresh(); setReview(null); toast.success("حُفظت مراجعة الطلب."); } catch (e) { setError(errMsg(e)); } finally { setBusy(false); }
   }
   async function cancel(id: string) { setBusy(true); setError(null); try { const result = await supabase.rpc("cancel_swap", { _request_id: id }); if (result.error) throw result.error; await refresh(); } catch (e) { setError(errMsg(e)); } finally { setBusy(false); } }
   return <AppShell title="طلبات التبديل" subtitle="طلباتك ومراجعات المشرف في مكان واحد." action={<Button aria-label="طلب تبديل جديد" onClick={() => { setError(null); setOpen(true); }}><Plus /><span className="hidden sm:inline">طلب جديد</span></Button>}>
