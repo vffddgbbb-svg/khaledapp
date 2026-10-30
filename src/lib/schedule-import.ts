@@ -59,7 +59,7 @@ export function buildAssignments(grid: Grid, o: ImportOptions): ImportedAssignme
   const out: ImportedAssignment[] = [];
   const header = grid[o.headerRow] ?? [];
   for (let r = o.headerRow + 1; r < grid.length; r++) {
-    const row = grid[r];
+    const row = grid[r] ?? [];
     const rowLabel = (row[o.labelCol] ?? "").trim();
     if (!rowLabel) continue;
     for (let c = 0; c < row.length; c++) {
