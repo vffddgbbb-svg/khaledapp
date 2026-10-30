@@ -1,18 +1,24 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Repeat2, Users, LogOut, ChevronLeft, Heart, RefreshCw } from "lucide-react";
+import { CalendarDays, Repeat2, Users, LogOut, ChevronLeft, Heart, RefreshCw, ExternalLink } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { meQuery } from "@/lib/app-data";
 import { supabase } from "@/integrations/supabase/client";
 
+export const PREVIEW_URL = "https://id-preview--f826536b-190c-4e21-a983-b01ac9235739.lovable.app/";
+
+export function PreviewLink() {
+  return <div className="mt-4 flex flex-col items-center gap-2"><p className="text-xs text-muted-foreground">رابط معاينة التطبيق (نسخة تجريبية — ليست النسخة المنشورة):</p><Button asChild variant="outline" size="sm"><a href={PREVIEW_URL} target="_blank" rel="noopener noreferrer"><ExternalLink className="size-4" />فتح المعاينة في تبويب جديد</a></Button><code dir="ltr" className="max-w-full break-all text-[11px] text-muted-foreground">{PREVIEW_URL}</code></div>;
+}
+
 export function Brand() {
   return <span className="flex min-w-0 items-center gap-3"><span className="brand-symbol grid size-11 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><CalendarDays className="size-6" /><Heart className="brand-heart size-3" /></span><span className="min-w-0"><span className="block truncate font-display text-xl font-extrabold">رفيق المناوبات</span><span className="block text-xs text-muted-foreground">كل مناوبة، في مكانها</span></span></span>;
 }
 
 export function PublicShell({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen"><header className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-5 sm:px-8"><Link to="/" aria-label="رفيق المناوبات — الرئيسية"><Brand /></Link><ThemeToggle /></header><main>{children}</main><footer className="mx-auto max-w-6xl px-5 py-8 text-center text-xs text-muted-foreground">رفيق المناوبات <span className="mx-2">·</span> مساحة فريقك المشتركة</footer></div>;
+  return <div className="min-h-screen"><header className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-5 sm:px-8"><Link to="/" aria-label="رفيق المناوبات — الرئيسية"><Brand /></Link><ThemeToggle /></header><main>{children}</main><footer className="mx-auto max-w-6xl px-5 py-8 text-center text-xs text-muted-foreground">رفيق المناوبات <span className="mx-2">·</span> مساحة فريقك المشتركة<PreviewLink /></footer></div>;
 }
 
 export function AppShell({ title, subtitle, children, action }: { title: string; subtitle: string; children: ReactNode; action?: ReactNode }) {
