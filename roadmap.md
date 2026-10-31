@@ -1,5 +1,7 @@
 # Roadmap
-- [x] Fix build errors; tests pass.
-- [x] Smoke test public pages and sign-in redirect.
-- [ ] Signed-in flows (schedule, swaps, approvals, live sync) — blocked: no accounts exist until owner adds ADMIN_SETUP_TOKEN and claims admin at /setup.
-- [ ] Import real November 2026 schedule — blocked: uploaded file has only a title, no shifts.
+- [ ] Audit existing routes, Cloud schema, grants, RPC and atomic first-admin setup.
+- [ ] Complete profile, scheduling, shift types, imports and audit views.
+- [ ] Installable PWA, safe offline fallback and mobile navigation; remove preview links.
+- [ ] Run tests/lint, inspect build and browser flows; verify available real accounts only.
+- [ ] Publish publicly after checks; retain existing Lovable domain.
+- [ ] Import original schedule — blocked until full original HTML/CSV is supplied; never invent assignments.
