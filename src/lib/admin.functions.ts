@@ -12,9 +12,10 @@ const accountSchema = z.object({
 /** Whether the server has a setup token configured (never returns the token). */
 export const getSetupStatus = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("user_roles").select("id").eq("role", "admin").limit(1);
+  const { data, error } = await supabaseAdmin.from("user_roles").select("id").eq("role", "admin").limit(1);
+  if (error) throw new Error("تعذر التحقق من الإعداد. تواصل مع مالك المشروع.");
   return {
-    tokenConfigured: Boolean(process.env["ADMIN_SETUP_TOKEN"]),
+    tokenConfigured: Boolean(process.env["ADMIN_SETUP_TOKEN"] && process.env["SUPABASE_SERVICE_ROLE_KEY"]),
     adminExists: (data?.length ?? 0) > 0,
   };
 });
@@ -39,8 +40,11 @@ export const claimAdmin = createServerFn({ method: "POST" })
     });
     if (error || !created.user) throw new Error(error?.message ?? "تعذر إنشاء الحساب");
 
-    const { error: roleErr } = await supabaseAdmin.from("user_roles").insert({ user_id: created.user.id, role: "admin" });
-    if (roleErr) throw new Error(roleErr.message);
+    const { error: roleErr } = await supabaseAdmin.rpc("claim_initial_admin", { _user_id: created.user.id });
+    if (roleErr) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      throw new Error(roleErr.message);
+    }
     await supabaseAdmin.from("audit_log").insert({
       actor_id: created.user.id,
       action: "claim_admin",
@@ -51,7 +55,7 @@ export const claimAdmin = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-async function assertAdmin(ctx: { supabase: any; userId: string }) {
+async function assertAdmin(ctx: { supabase: import("@supabase/supabase-js").SupabaseClient<import("@/integrations/supabase/types").Database>; userId: string }) {
   const { data, error } = await ctx.supabase.rpc("has_role", { _user_id: ctx.userId, _role: "admin" });
   if (error || !data) throw new Error("غير مصرح: هذه العملية للمشرف فقط.");
 }
@@ -59,7 +63,7 @@ async function assertAdmin(ctx: { supabase: any; userId: string }) {
 /** Admin-only: create a member account with a temporary password. */
 export const createMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => accountSchema.extend({ role: z.enum(["member", "admin"]).default("member") }).parse(input))
+  .inputValidator((input: unknown) => accountSchema.extend({ role: z.literal("member").default("member") }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -70,7 +74,11 @@ export const createMember = createServerFn({ method: "POST" })
       user_metadata: { full_name: data.fullName },
     });
     if (error || !created.user) throw new Error(error?.message ?? "تعذر إنشاء الحساب");
-    await supabaseAdmin.from("user_roles").insert({ user_id: created.user.id, role: data.role });
+    const { error: roleError } = await supabaseAdmin.from("user_roles").insert({ user_id: created.user.id, role: "member" });
+    if (roleError) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+      throw new Error("تعذر إكمال إنشاء العضو.");
+    }
     await supabaseAdmin.from("audit_log").insert({
       actor_id: context.userId,
       action: "create_member",

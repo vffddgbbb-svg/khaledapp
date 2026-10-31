@@ -14,6 +14,8 @@ export const Route = createFileRoute("/reset-password")({
       { name: "description", content: "عيّن كلمة مرور جديدة لحسابك." },
       { property: "og:title", content: "تعيين كلمة مرور جديدة" },
       { property: "og:description", content: "عيّن كلمة مرور جديدة لحسابك في رفيق المناوبات." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ResetPage,

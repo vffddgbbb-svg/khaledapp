@@ -251,6 +251,7 @@ export type Database = {
     Functions: {
       admin_exists: { Args: never; Returns: boolean }
       cancel_swap: { Args: { _request_id: string }; Returns: undefined }
+      claim_initial_admin: { Args: { _user_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -258,6 +259,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_schedule: { Args: { _rows: Json }; Returns: number }
       review_swap: {
         Args: { _approve: boolean; _note?: string; _request_id: string }
         Returns: undefined
