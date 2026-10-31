@@ -19,6 +19,8 @@ export const Route = createFileRoute("/setup")({
       { name: "description", content: "مطالبة مالك التطبيق بحساب المشرف باستخدام رمز إعداد لمرة واحدة." },
       { property: "og:title", content: "الإعداد الأولي — رفيق المناوبات" },
       { property: "og:description", content: "مطالبة المالك بحساب المشرف." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SetupPage,
@@ -40,7 +42,8 @@ function SetupPage() {
     setBusy(true);
     try {
       await claim({ data: form });
-      await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
+      if (loginError) throw new Error("أُنشئ الحساب، لكن تعذر الدخول. انتقل إلى صفحة تسجيل الدخول.");
       toast.success("تم إنشاء حساب المشرف 🎉");
       navigate({ to: "/dashboard" });
     } catch (err) {

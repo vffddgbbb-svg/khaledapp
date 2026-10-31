@@ -7,10 +7,11 @@ export const meQuery = queryOptions({
   queryFn: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return null;
-    const [{ data: profile }, { data: roles }] = await Promise.all([
+    const [{ data: profile, error: profileError }, { data: roles, error: roleError }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", u.user.id),
     ]);
+    if (profileError || roleError) throw profileError || roleError;
     return {
       id: u.user.id,
       email: u.user.email ?? "",
@@ -91,6 +92,8 @@ export function useLiveSync(): SyncStatus {
       .on("postgres_changes", { event: "*", schema: "public", table: "shifts" }, () => {
         qc.invalidateQueries({ queryKey: ["shifts"] });
         qc.invalidateQueries({ queryKey: ["my-upcoming"] });
+        qc.invalidateQueries({ queryKey: ["swap-shifts"] });
+        qc.invalidateQueries({ queryKey: ["audit"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "swap_requests" }, () =>
         qc.invalidateQueries({ queryKey: ["swaps"] }),
@@ -98,6 +101,9 @@ export function useLiveSync(): SyncStatus {
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_types" }, () =>
         qc.invalidateQueries({ queryKey: ["shift_types"] }),
       )
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["me"] }); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => { qc.invalidateQueries({ queryKey: ["roles"] }); qc.invalidateQueries({ queryKey: ["me"] }); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "audit_log" }, () => qc.invalidateQueries({ queryKey: ["audit"] }))
       .subscribe((s) => {
         if (s === "SUBSCRIBED") setStatus("live");
         else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") setStatus("offline");
