@@ -14,3 +14,5 @@
 - Import assignments through an admin-gated transactional RPC after client preview and exact member/type resolution; this avoids invented rows and duplicate saves.
 - Register the generated app-shell service worker only through the guarded wrapper; cache assets and an offline notice, never private HTML or API responses.
 - Use the shared shell for a single Realtime subscription and mobile navigation; this keeps shared changes consistent across views.
+
+- Use the admin-gated save_shift RPC for manual shift creation and editing; enforce assignment uniqueness in the database so concurrent writes and imports cannot duplicate rows.

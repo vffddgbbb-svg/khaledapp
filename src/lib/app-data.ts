@@ -5,13 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 export const meQuery = queryOptions({
   queryKey: ["me"],
   queryFn: async () => {
-    const { data: u } = await supabase.auth.getUser();
+    const { data: u, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
     if (!u.user) return null;
-    const [{ data: profile, error: profileError }, { data: roles, error: roleError }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", u.user.id),
-    ]);
+    const [{ data: profile, error: profileError }, { data: roles, error: roleError }] =
+      await Promise.all([
+        supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", u.user.id),
+      ]);
     if (profileError || roleError) throw profileError || roleError;
+    if (!profile) throw new Error("تعذر العثور على ملف حسابك. راجع المشرف.");
     return {
       id: u.user.id,
       email: u.user.email ?? "",
@@ -74,7 +77,10 @@ export const shiftsMonthQuery = (year: number, month: number) =>
 export const swapsQuery = queryOptions({
   queryKey: ["swaps"],
   queryFn: async () => {
-    const { data, error } = await supabase.from("swap_requests").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("swap_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
   },
@@ -101,9 +107,17 @@ export function useLiveSync(): SyncStatus {
       .on("postgres_changes", { event: "*", schema: "public", table: "shift_types" }, () =>
         qc.invalidateQueries({ queryKey: ["shift_types"] }),
       )
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => { qc.invalidateQueries({ queryKey: ["profiles"] }); qc.invalidateQueries({ queryKey: ["me"] }); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => { qc.invalidateQueries({ queryKey: ["roles"] }); qc.invalidateQueries({ queryKey: ["me"] }); })
-      .on("postgres_changes", { event: "*", schema: "public", table: "audit_log" }, () => qc.invalidateQueries({ queryKey: ["audit"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        qc.invalidateQueries({ queryKey: ["profiles"] });
+        qc.invalidateQueries({ queryKey: ["me"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => {
+        qc.invalidateQueries({ queryKey: ["roles"] });
+        qc.invalidateQueries({ queryKey: ["me"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "audit_log" }, () =>
+        qc.invalidateQueries({ queryKey: ["audit"] }),
+      )
       .subscribe((s) => {
         if (s === "SUBSCRIBED") setStatus("live");
         else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") setStatus("offline");
@@ -116,9 +130,23 @@ export function useLiveSync(): SyncStatus {
 }
 
 export function errMsg(e: unknown) {
-  if (e && typeof e === "object" && "message" in e) return String((e as { message: unknown }).message);
+  if (e && typeof e === "object" && "message" in e)
+    return String((e as { message: unknown }).message);
   return "حدث خطأ غير متوقع";
 }
 
-export const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+export const AR_MONTHS = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
 export const AR_DAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];

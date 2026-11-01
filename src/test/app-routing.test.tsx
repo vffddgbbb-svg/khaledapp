@@ -1,6 +1,9 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter, rootRouteId } from "@tanstack/react-router";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Route matching must not initialize the production-only service-worker plugin.
+vi.mock("@/lib/register-pwa", () => ({ registerOfflineApp: vi.fn() }));
 
 import { routeTree } from "@/routeTree.gen";
 
