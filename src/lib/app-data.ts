@@ -5,13 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 export const meQuery = queryOptions({
   queryKey: ["me"],
   queryFn: async () => {
-    const { data: u } = await supabase.auth.getUser();
+    const { data: u, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
     if (!u.user) return null;
     const [{ data: profile, error: profileError }, { data: roles, error: roleError }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", u.user.id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", u.user.id),
     ]);
     if (profileError || roleError) throw profileError || roleError;
+    if (!profile) throw new Error("تعذر العثور على ملف حسابك. راجع المشرف.");
     return {
       id: u.user.id,
       email: u.user.email ?? "",

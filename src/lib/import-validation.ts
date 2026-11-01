@@ -15,6 +15,8 @@ export function readSchedule(text: string, html: boolean): ScheduleRow[] {
   const header = (grid[0] ?? []).map(s => s.replace(/^\uFEFF/, "").trim().toLowerCase());
   const columns = [header.findIndex(s => ["date", "التاريخ"].includes(s)), header.findIndex(s => ["member", "العضو", "الاسم"].includes(s)), header.findIndex(s => ["code", "رمز المناوبة", "الرمز"].includes(s))];
   if (columns.some(i => i < 0)) throw new Error("الأعمدة المطلوبة: التاريخ (YYYY-MM-DD)، العضو، رمز المناوبة.");
+  const aliases = [["date", "التاريخ"], ["member", "العضو", "الاسم"], ["code", "رمز المناوبة", "الرمز"]];
+  if (aliases.some(names => header.filter(name => names.includes(name)).length !== 1)) throw new Error("لا يجوز تكرار أعمدة التاريخ أو العضو أو الرمز.");
   if (grid.length <= 1) throw new Error("لا يحتوي الملف على مناوبات. الجدول الأصلي الكامل مطلوب.");
   if (grid.length > 2001) throw new Error("الحد الأقصى 2000 مناوبة في الملف الواحد.");
   return grid.slice(1).map((cells, index) => {
@@ -29,11 +31,13 @@ export function validDate(date: string) {
   return !Number.isNaN(value.getTime()) && value.toISOString().slice(0, 10) === date;
 }
 export function resolveSchedule(rows: ScheduleRow[], members: { id: string; full_name: string }[], types: { id: string; code: string }[]) {
+  if (rows.length === 0 || rows.length > 2000) throw new Error("يجب أن يحتوي الملف على 1 إلى 2000 مناوبة.");
   const seen = new Set<string>();
   return rows.flatMap((row, index) => {
     const matches = members.filter(m => m.full_name.trim() === row.assignee);
-    const type = types.find(t => t.code === row.code);
-    if (matches.length !== 1 || !type || !validDate(row.date)) throw new Error(`السطر ${index + 2}: يجب أن يطابق الاسم عضواً واحداً وأن يكون رمز المناوبة مسجلاً.`);
+    const matchedTypes = types.filter(t => t.code === row.code);
+    const type = matchedTypes[0];
+    if (matches.length !== 1 || matchedTypes.length !== 1 || !type || !validDate(row.date)) throw new Error(`السطر ${index + 2}: يجب أن يطابق الاسم عضواً واحداً وأن يكون رمز المناوبة مسجلاً دون التباس.`);
     const member = matches[0];
     if (!member) throw new Error("عضو غير موجود");
     const key = `${row.date}:${member.id}:${type.id}`;
