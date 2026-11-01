@@ -264,6 +264,16 @@ export type Database = {
         Args: { _approve: boolean; _note?: string; _request_id: string }
         Returns: undefined
       }
+      save_shift: {
+        Args: {
+          _date: string
+          _member_id: string
+          _notes?: string
+          _shift_id?: string
+          _type_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "member"
