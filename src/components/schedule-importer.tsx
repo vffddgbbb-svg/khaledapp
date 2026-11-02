@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/states";
 import { FormSelect } from "@/components/form-select";
 import { profilesQuery, shiftTypesQuery, errMsg, AR_MONTHS, monthRange } from "@/lib/app-data";
-import { findExisting, readFlat, readGridFile, resolveSchedule } from "@/lib/import-validation";
+import {
+  assertNoSkippedCells,
+  findExisting,
+  readFlat,
+  readGridFile,
+  resolveSchedule,
+} from "@/lib/import-validation";
 import { daysInMonth, readGrid, type Grid, type Layout } from "@/lib/schedule-import";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,6 +51,7 @@ export function ScheduleImporter() {
             });
       let problem = "";
       try {
+        if (mode !== "flat") assertNoSkippedCells(skipped);
         if (rows.length) resolveSchedule(rows, profiles.data ?? [], types.data ?? []);
         else problem = "لم يُعثر على أي مناوبة بهذه الإعدادات. راجع الاتجاه وصف/عمود العناوين.";
       } catch (e) {

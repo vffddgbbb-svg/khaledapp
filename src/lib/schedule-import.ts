@@ -149,7 +149,7 @@ export function readGrid(grid: Grid, o: ImportOptions) {
     }
     const rowDay = membersRows ? null : parseDay(rowLabel, dim, o.year, o.month);
     if (!membersRows && rowDay === null) {
-      if (filled)
+      if (rowLabel || filled)
         skipped.push({
           where: pos(r, o.labelCol),
           value: rowLabel,

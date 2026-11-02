@@ -1,6 +1,23 @@
 import Papa from "papaparse";
-import { normalizeDigits, parseHtmlTables, type Grid } from "@/lib/schedule-import";
+import {
+  normalizeDigits,
+  parseHtmlTables,
+  type Grid,
+  type SkippedCell,
+} from "@/lib/schedule-import";
 export type ScheduleRow = { date: string; assignee: string; code: string; where?: string };
+
+/** Rejects a grid import if any non-empty cell or day label was not understood. */
+export function assertNoSkippedCells(skipped: SkippedCell[]) {
+  if (!skipped.length) return;
+  const details = skipped
+    .slice(0, 15)
+    .map((cell) => `${cell.where}: ${cell.value ? `«${cell.value}» — ` : ""}${cell.reason}`)
+    .join("\n");
+  throw new Error(
+    `رُفض الملف كاملاً ولم يُحفظ شيء (${skipped.length} خلية أو عنوان غير صالح):\n${details}${skipped.length > 15 ? "\n…" : ""}`,
+  );
+}
 
 /** Reads a file into a single grid (HTML must contain exactly one table). */
 export function readGridFile(text: string, html: boolean): Grid {
