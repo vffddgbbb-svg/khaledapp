@@ -109,7 +109,8 @@ const pos = (r: number, c: number) => `الصف ${r + 1}، العمود ${c + 1}
 
 /** Turn a grid into assignments, reporting every skipped cell with its reason. */
 export function readGrid(grid: Grid, o: ImportOptions) {
-  if (!Number.isInteger(o.year) || o.year < 2000 || o.year > 2100) throw new Error("السنة غير صالحة.");
+  if (!Number.isInteger(o.year) || o.year < 2000 || o.year > 2100)
+    throw new Error("السنة غير صالحة.");
   if (!Number.isInteger(o.month) || o.month < 1 || o.month > 12) throw new Error("الشهر غير صالح.");
   const header = grid[o.headerRow];
   if (!header) throw new Error(`صف العناوين ${o.headerRow + 1} غير موجود في الجدول.`);
@@ -125,7 +126,12 @@ export function readGrid(grid: Grid, o: ImportOptions) {
     if (membersRows) {
       const d = parseDay(v, dim, o.year, o.month);
       colDays.set(c, d);
-      if (d === null) skipped.push({ where: pos(o.headerRow, c), value: v, reason: `عنوان يوم غير صالح لشهر فيه ${dim} يوماً` });
+      if (d === null)
+        skipped.push({
+          where: pos(o.headerRow, c),
+          value: v,
+          reason: `عنوان يوم غير صالح لشهر فيه ${dim} يوماً`,
+        });
     }
   });
   for (let r = o.headerRow + 1; r < grid.length; r++) {
@@ -133,12 +139,22 @@ export function readGrid(grid: Grid, o: ImportOptions) {
     const rowLabel = (row[o.labelCol] ?? "").trim();
     const filled = row.some((v, c) => c !== o.labelCol && v.trim());
     if (!rowLabel) {
-      if (filled) skipped.push({ where: pos(r, o.labelCol), value: "", reason: "صف بلا عنوان؛ تُجوهلت خلاياه" });
+      if (filled)
+        skipped.push({
+          where: pos(r, o.labelCol),
+          value: "",
+          reason: "صف بلا عنوان؛ تُجوهلت خلاياه",
+        });
       continue;
     }
     const rowDay = membersRows ? null : parseDay(rowLabel, dim, o.year, o.month);
     if (!membersRows && rowDay === null) {
-      if (filled) skipped.push({ where: pos(r, o.labelCol), value: rowLabel, reason: `عنوان يوم غير صالح لشهر فيه ${dim} يوماً` });
+      if (filled)
+        skipped.push({
+          where: pos(r, o.labelCol),
+          value: rowLabel,
+          reason: `عنوان يوم غير صالح لشهر فيه ${dim} يوماً`,
+        });
       continue;
     }
     for (let c = 0; c < row.length; c++) {
@@ -156,9 +172,19 @@ export function readGrid(grid: Grid, o: ImportOptions) {
           skipped.push({ where: pos(r, c), value: cell, reason: "خلية تحت عنوان يوم غير صالح" });
           continue;
         }
-        rows.push({ date: iso(o.year, o.month, day), assignee: rowLabel, code: cell, where: pos(r, c) });
+        rows.push({
+          date: iso(o.year, o.month, day),
+          assignee: rowLabel,
+          code: cell,
+          where: pos(r, c),
+        });
       } else {
-        rows.push({ date: iso(o.year, o.month, rowDay!), assignee: colLabel, code: cell, where: pos(r, c) });
+        rows.push({
+          date: iso(o.year, o.month, rowDay!),
+          assignee: colLabel,
+          code: cell,
+          where: pos(r, c),
+        });
       }
     }
   }
