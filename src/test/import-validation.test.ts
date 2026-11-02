@@ -38,11 +38,11 @@ describe("Original schedule safety", () => {
   it("rejects missing required columns", () => {
     expect(() => readSchedule("date,member\n2026-11-01,x", false)).toThrow();
   });
-  it("deduplicates the same assignment", () => {
+  it("rejects the same assignment twice in one file", () => {
     const row = { date: "2026-11-01", assignee: "test", code: "A" };
-    expect(
+    expect(() =>
       resolveSchedule([row, row], [{ id: "m", full_name: "test" }], [{ id: "t", code: "A" }]),
-    ).toHaveLength(1);
+    ).toThrow();
   });
   it("rejects unmatched names rather than inventing members", () => {
     expect(() =>
