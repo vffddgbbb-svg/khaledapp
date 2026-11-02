@@ -7,7 +7,13 @@ import {
   placeCells,
   readGrid,
 } from "@/lib/schedule-import";
-import { findExisting, readGridFile, readSchedule, resolveSchedule } from "@/lib/import-validation";
+import {
+  assertNoSkippedCells,
+  findExisting,
+  readGridFile,
+  readSchedule,
+  resolveSchedule,
+} from "@/lib/import-validation";
 
 const members = [
   { id: "a", full_name: "أحمد" },
@@ -77,6 +83,7 @@ describe("grid import", () => {
     );
     expect(rows).toHaveLength(1);
     expect(skipped.map((s) => s.value)).toEqual([String(d + 1), "D"]);
+    expect(() => assertNoSkippedCells(skipped)).toThrow(/رُفض الملف كاملاً/);
   });
   it("reports invalid headers and orphan cells instead of dropping them silently", () => {
     const { rows, skipped } = readGrid(
@@ -89,6 +96,53 @@ describe("grid import", () => {
     );
     expect(rows).toHaveLength(1);
     expect(skipped).toHaveLength(4);
+    expect(() => assertNoSkippedCells(skipped)).toThrow(/رُفض الملف كاملاً/);
+  });
+  it("rejects non-empty cells under invalid day headers in both grid directions", () => {
+    const membersRows = readGrid(
+      [
+        ["الاسم", "31", "1"],
+        ["أحمد", "D", "N"],
+      ],
+      { year: 2026, month: 11, headerRow: 0, labelCol: 0, layout: "members-rows" },
+    );
+    const datesRows = readGrid(
+      [
+        ["اليوم", "أحمد"],
+        ["31", "D"],
+        ["1", "N"],
+      ],
+      { year: 2026, month: 11, headerRow: 0, labelCol: 0, layout: "dates-rows" },
+    );
+    const emptyInvalidDay = readGrid(
+      [
+        ["اليوم", "أحمد"],
+        ["31", ""],
+      ],
+      { year: 2026, month: 11, headerRow: 0, labelCol: 0, layout: "dates-rows" },
+    );
+    expect(() => assertNoSkippedCells(membersRows.skipped)).toThrow(/عنوان يوم غير صالح/);
+    expect(() => assertNoSkippedCells(datesRows.skipped)).toThrow(/عنوان يوم غير صالح/);
+    expect(() => assertNoSkippedCells(emptyInvalidDay.skipped)).toThrow(/عنوان يوم غير صالح/);
+  });
+  it("allows genuinely empty cells in both grid directions", () => {
+    const membersRows = readGrid(
+      [
+        ["الاسم", "1", "2"],
+        ["أحمد", "D", ""],
+      ],
+      { ...opts, layout: "members-rows" },
+    );
+    const datesRows = readGrid(
+      [
+        ["اليوم", "أحمد"],
+        ["1", "D"],
+        ["2", ""],
+      ],
+      { ...opts, layout: "dates-rows" },
+    );
+    expect(() => assertNoSkippedCells(membersRows.skipped)).not.toThrow();
+    expect(() => assertNoSkippedCells(datesRows.skipped)).not.toThrow();
   });
   it("expands rowspan and colspan into the right cells", () => {
     expect(
