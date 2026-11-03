@@ -11,13 +11,14 @@ import {
   assertNoSkippedCells,
   findExisting,
   readFlat,
+  readDepartmentGrid,
   readGridFile,
   resolveSchedule,
 } from "@/lib/import-validation";
 import { daysInMonth, readGrid, type Grid, type Layout } from "@/lib/schedule-import";
 import { supabase } from "@/integrations/supabase/client";
 
-type Mode = "flat" | Layout;
+type Mode = "flat" | "departments" | Layout;
 
 export function ScheduleImporter() {
   const profiles = useQuery(profilesQuery);
@@ -25,7 +26,7 @@ export function ScheduleImporter() {
   const qc = useQueryClient();
   const now = new Date();
   const [grid, setGrid] = useState<Grid | null>(null);
-  const [mode, setMode] = useState<Mode>("members-rows");
+  const [mode, setMode] = useState<Mode>("departments");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [headerRow, setHeaderRow] = useState(1);
@@ -38,6 +39,19 @@ export function ScheduleImporter() {
 
   const parsed = useMemo(() => {
     if (!grid) return null;
+    if (mode === "departments") {
+      try {
+        const rows = readDepartmentGrid(grid, year, month).map((r) => ({
+          date: r.date,
+          assignee: r.name,
+          code: r.department,
+          where: r.where,
+        }));
+        return { rows, skipped: [], problem: "", error: "" };
+      } catch (e) {
+        return { rows: [], skipped: [], problem: "", error: errMsg(e) };
+      }
+    }
     try {
       const { rows, skipped } =
         mode === "flat"
@@ -90,6 +104,17 @@ export function ScheduleImporter() {
     setBusy(true);
     setSaveError("");
     try {
+      if (mode === "departments") {
+        const payload = parsed.rows.map((r) => ({ date: r.date, department: r.code, name: r.assignee }));
+        const { data, error } = await supabase.rpc("import_department_schedule", { _rows: payload });
+        if (error) throw error;
+        setResult(`حُفظت ${data} مناوبة (اسم) في الجدول.`);
+        reset();
+        await Promise.all(
+          ["shifts", "shift-types", "audit"].map((key) => qc.invalidateQueries({ queryKey: [key] })),
+        );
+        return;
+      }
       const resolved = resolveSchedule(parsed.rows, profiles.data ?? [], types.data ?? []);
       const dates = resolved.map((r) => r.date).sort();
       const { data: existing, error: readErr } = await supabase
@@ -172,6 +197,9 @@ export function ScheduleImporter() {
                 value={mode}
                 onChange={(e) => setMode(e.target.value as Mode)}
               >
+                <option value="departments">
+                  أقسام: اليوم، التاريخ، ثم عمود لكل قسم (أسماء متعددة في الخلية)
+                </option>
                 <option value="members-rows">شبكي: الأطباء في الصفوف والأيام في الأعمدة</option>
                 <option value="dates-rows">شبكي: الأيام في الصفوف والأطباء في الأعمدة</option>
                 <option value="dates-codes">

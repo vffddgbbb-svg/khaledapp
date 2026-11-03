@@ -258,3 +258,22 @@ describe("multi-line names per cell", () => {
     expect(() => resolveSchedule(rows, members, types)).toThrow();
   });
 });
+
+import { readDepartmentGrid } from "@/lib/import-validation";
+describe("department grid", () => {
+  const csv = 'اليوم,التاريخ,جناح,عناية كبيرة\nالأحد,2026-11-01,"د. أحمد علي\nد. سارة محمد",خالد\nالاثنين,2026-11-02,,\n';
+  it("keeps every full name per day and department, without needing profiles", () => {
+    const rows = readDepartmentGrid(readGridFile(csv, false), 2026, 11);
+    expect(rows.map((r) => [r.date, r.department, r.name])).toEqual([
+      ["2026-11-01", "جناح", "د. أحمد علي"],
+      ["2026-11-01", "جناح", "د. سارة محمد"],
+      ["2026-11-01", "عناية كبيرة", "خالد"],
+    ]);
+  });
+  it("rejects dates outside November 2026", () => {
+    expect(() => readDepartmentGrid(readGridFile(csv, false), 2026, 12)).toThrow();
+  });
+  it("rejects a name repeated in the same cell", () => {
+    expect(() => readDepartmentGrid(readGridFile('التاريخ,جناح\n2026-11-01,"أ\nأ"', false), 2026, 11)).toThrow();
+  });
+});
