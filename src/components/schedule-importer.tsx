@@ -174,6 +174,10 @@ export function ScheduleImporter() {
               >
                 <option value="members-rows">شبكي: الأطباء في الصفوف والأيام في الأعمدة</option>
                 <option value="dates-rows">شبكي: الأيام في الصفوف والأطباء في الأعمدة</option>
+                <option value="dates-codes">
+                  شبكي: الأيام في الصفوف ورموز المناوبات في الأعمدة (عدة أسماء في الخلية، اسم في كل
+                  سطر)
+                </option>
                 <option value="flat">مسطح: أعمدة التاريخ والعضو والرمز</option>
               </FormSelect>
             </div>
@@ -209,7 +213,13 @@ export function ScheduleImporter() {
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="imp-header">
-                    رقم صف العناوين ({mode === "members-rows" ? "الأيام" : "الأسماء"})
+                    رقم صف العناوين (
+                    {mode === "members-rows"
+                      ? "الأيام"
+                      : mode === "dates-codes"
+                        ? "رموز المناوبات"
+                        : "الأسماء"}
+                    )
                   </Label>
                   <Input
                     id="imp-header"

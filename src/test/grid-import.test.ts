@@ -239,3 +239,22 @@ describe("legacy flat formats", () => {
     expect(() => readGridFile("<h1>مناوبات</h1>", true)).toThrow();
   });
 });
+
+describe("multi-line names per cell", () => {
+  it("saves each name in a quoted multi-line CSV cell as its own shift", () => {
+    const grid = readGridFile('اليوم,D,N\n1,"أحمد\nسارة",\n2,,"سارة"\n', false);
+    const { rows, skipped } = readGrid(grid, { ...opts, layout: "dates-codes" });
+    expect(skipped).toEqual([]);
+    expect(rows.map(({ date, assignee, code }) => [date, assignee, code])).toEqual([
+      ["2026-11-01", "أحمد", "D"],
+      ["2026-11-01", "سارة", "D"],
+      ["2026-11-02", "سارة", "N"],
+    ]);
+    expect(resolveSchedule(rows, members, types)).toHaveLength(3);
+  });
+  it("rejects the same name twice in one cell", () => {
+    const grid = readGridFile('اليوم,D\n1,"أحمد\nأحمد"\n', false);
+    const { rows } = readGrid(grid, { ...opts, layout: "dates-codes" });
+    expect(() => resolveSchedule(rows, members, types)).toThrow();
+  });
+});
