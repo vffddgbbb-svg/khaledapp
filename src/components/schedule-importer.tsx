@@ -11,13 +11,14 @@ import {
   assertNoSkippedCells,
   findExisting,
   readFlat,
+  readDepartmentGrid,
   readGridFile,
   resolveSchedule,
 } from "@/lib/import-validation";
 import { daysInMonth, readGrid, type Grid, type Layout } from "@/lib/schedule-import";
 import { supabase } from "@/integrations/supabase/client";
 
-type Mode = "flat" | Layout;
+type Mode = "flat" | "departments" | Layout;
 
 export function ScheduleImporter() {
   const profiles = useQuery(profilesQuery);
@@ -25,7 +26,7 @@ export function ScheduleImporter() {
   const qc = useQueryClient();
   const now = new Date();
   const [grid, setGrid] = useState<Grid | null>(null);
-  const [mode, setMode] = useState<Mode>("members-rows");
+  const [mode, setMode] = useState<Mode>("departments");
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [headerRow, setHeaderRow] = useState(1);
@@ -38,6 +39,19 @@ export function ScheduleImporter() {
 
   const parsed = useMemo(() => {
     if (!grid) return null;
+    if (mode === "departments") {
+      try {
+        const rows = readDepartmentGrid(grid, year, month).map((r) => ({
+          date: r.date,
+          assignee: r.name,
+          code: r.department,
+          where: r.where,
+        }));
+        return { rows, skipped: [], problem: "", error: "" };
+      } catch (e) {
+        return { rows: [], skipped: [], problem: "", error: errMsg(e) };
+      }
+    }
     try {
       const { rows, skipped } =
         mode === "flat"
@@ -90,6 +104,25 @@ export function ScheduleImporter() {
     setBusy(true);
     setSaveError("");
     try {
+      if (mode === "departments") {
+        const payload = parsed.rows.map((r) => ({
+          date: r.date,
+          department: r.code,
+          name: r.assignee,
+        }));
+        const { data, error } = await supabase.rpc("import_department_schedule", {
+          _rows: payload,
+        });
+        if (error) throw error;
+        setResult(`حُفظت ${data} مناوبة (اسم) في الجدول.`);
+        reset();
+        await Promise.all(
+          ["shifts", "shift_types", "audit"].map((key) =>
+            qc.invalidateQueries({ queryKey: [key] }),
+          ),
+        );
+        return;
+      }
       const resolved = resolveSchedule(parsed.rows, profiles.data ?? [], types.data ?? []);
       const dates = resolved.map((r) => r.date).sort();
       const { data: existing, error: readErr } = await supabase
@@ -138,9 +171,11 @@ export function ScheduleImporter() {
     <section className="space-y-4 border-t py-6">
       <h2 className="text-xl font-bold">استيراد الجدول الأصلي</h2>
       <p className="text-sm text-muted-foreground">
-        HTML أو CSV. يدعم الجدول الشبكي (الأسماء في الصفوف والأيام في الأعمدة أو العكس) والصيغة
-        المسطحة (التاريخ، العضو، رمز المناوبة). يجب أن تطابق الأسماء والرموز الفريق المسجل حرفياً؛
-        أي خطأ يرفض الملف كاملاً.
+        HTML أو CSV. صيغة الأقسام: أعمدة اليوم والتاريخ (YYYY-MM-DD) ثم عمود لكل قسم، وكل اسم في سطر
+        داخل الخلية؛ تُحفظ الأسماء كاملة حتى لو لم يكن لها حساب، ويُنشأ القسم تلقائياً. يدعم أيضاً
+        الجدول الشبكي (الأسماء في الصفوف والأيام في الأعمدة أو العكس) والصيغة المسطحة (التاريخ،
+        العضو، رمز المناوبة). يجب أن تطابق الأسماء والرموز الفريق المسجل حرفياً؛ أي خطأ يرفض الملف
+        كاملاً.
       </p>
       <div className="space-y-2">
         <Label htmlFor="schedule-file">ملف الجدول</Label>
@@ -172,6 +207,9 @@ export function ScheduleImporter() {
                 value={mode}
                 onChange={(e) => setMode(e.target.value as Mode)}
               >
+                <option value="departments">
+                  أقسام: اليوم، التاريخ، ثم عمود لكل قسم (أسماء متعددة في الخلية)
+                </option>
                 <option value="members-rows">شبكي: الأطباء في الصفوف والأيام في الأعمدة</option>
                 <option value="dates-rows">شبكي: الأيام في الصفوف والأطباء في الأعمدة</option>
                 <option value="dates-codes">
@@ -211,46 +249,50 @@ export function ScheduleImporter() {
                     ))}
                   </FormSelect>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="imp-header">
-                    رقم صف العناوين (
-                    {mode === "members-rows"
-                      ? "الأيام"
-                      : mode === "dates-codes"
-                        ? "رموز المناوبات"
-                        : "الأسماء"}
-                    )
-                  </Label>
-                  <Input
-                    id="imp-header"
-                    type="number"
-                    min={1}
-                    max={rowCount}
-                    value={headerRow}
-                    onChange={(e) =>
-                      setHeaderRow(Math.max(1, Math.min(rowCount, Number(e.target.value) || 1)))
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="imp-col">
-                    رقم عمود العناوين ({mode === "members-rows" ? "الأسماء" : "الأيام"})
-                  </Label>
-                  <Input
-                    id="imp-col"
-                    type="number"
-                    min={1}
-                    max={colCount}
-                    value={labelCol}
-                    onChange={(e) =>
-                      setLabelCol(Math.max(1, Math.min(colCount, Number(e.target.value) || 1)))
-                    }
-                  />
-                </div>
+                {mode !== "departments" && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="imp-header">
+                        رقم صف العناوين (
+                        {mode === "members-rows"
+                          ? "الأيام"
+                          : mode === "dates-codes"
+                            ? "رموز المناوبات"
+                            : "الأسماء"}
+                        )
+                      </Label>
+                      <Input
+                        id="imp-header"
+                        type="number"
+                        min={1}
+                        max={rowCount}
+                        value={headerRow}
+                        onChange={(e) =>
+                          setHeaderRow(Math.max(1, Math.min(rowCount, Number(e.target.value) || 1)))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="imp-col">
+                        رقم عمود العناوين ({mode === "members-rows" ? "الأسماء" : "الأيام"})
+                      </Label>
+                      <Input
+                        id="imp-col"
+                        type="number"
+                        min={1}
+                        max={colCount}
+                        value={labelCol}
+                        onChange={(e) =>
+                          setLabelCol(Math.max(1, Math.min(colCount, Number(e.target.value) || 1)))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>
-          {mode !== "flat" && (
+          {mode !== "flat" && mode !== "departments" && (
             <>
               <h3 className="font-semibold">
                 الصفوف الأولى من الملف (للتأكد من أرقام الصف والعمود)

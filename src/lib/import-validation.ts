@@ -127,3 +127,61 @@ export function findExisting(
   const keys = new Set(existing.map((s) => `${s.shift_date}:${s.member_id}:${s.shift_type_id}`));
   return resolved.filter((r) => keys.has(`${r.date}:${r.memberId}:${r.typeId}`));
 }
+
+export type DepartmentRow = { date: string; department: string; name: string; where: string };
+
+/**
+ * Department grid: one row per day, a "التاريخ" column (YYYY-MM-DD) and one
+ * column per department whose cells list full names, one per line.
+ * Every date must fall inside the chosen month; any problem rejects the file.
+ */
+export function readDepartmentGrid(grid: Grid, year: number, month: number): DepartmentRow[] {
+  const hIdx = grid.findIndex((r) => r.some((c) => c.replace(/^\uFEFF/, "").trim() === "التاريخ"));
+  if (hIdx < 0) throw new Error("لم يُعثر على عمود «التاريخ» في صف العناوين.");
+  const header = grid[hIdx]!.map((c) =>
+    c
+      .replace(/^\uFEFF/, "")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
+  const dateCol = header.indexOf("التاريخ");
+  const skip = new Set(["التاريخ", "اليوم", ""]);
+  const depts = header.map((h, i) => ({ h, i })).filter(({ h }) => !skip.has(h));
+  if (!depts.length) throw new Error("لا توجد أعمدة أقسام بعد «اليوم» و«التاريخ».");
+  if (new Set(depts.map((d) => d.h)).size !== depts.length)
+    throw new Error("أسماء الأقسام مكررة في العناوين.");
+  const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+  const out: DepartmentRow[] = [];
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  const dates = new Set<string>();
+  grid.slice(hIdx + 1).forEach((row, k) => {
+    const line = hIdx + k + 2;
+    if (row.every((c) => !c.trim())) return;
+    const date = normalizeDigits((row[dateCol] ?? "").trim());
+    if (!validDate(date) || !date.startsWith(prefix)) {
+      errors.push(`السطر ${line}: تاريخ «${date}» غير صالح أو خارج الشهر المختار.`);
+      return;
+    }
+    if (dates.has(date)) errors.push(`السطر ${line}: التاريخ ${date} مكرر.`);
+    dates.add(date);
+    for (const { h, i } of depts) {
+      for (const name of (row[i] ?? "")
+        .split(/\r?\n|،/)
+        .map((n) => n.replace(/\s+/g, " ").trim())
+        .filter(Boolean)) {
+        const key = `${date}|${h}|${name}`;
+        if (seen.has(key)) errors.push(`السطر ${line}: «${name}» مكرر في ${h}.`);
+        seen.add(key);
+        out.push({ date, department: h, name, where: `السطر ${line}، ${h}` });
+      }
+    }
+  });
+  if (!errors.length && !out.length) errors.push("لا توجد أسماء في الملف.");
+  if (out.length > 3000) errors.push("الحد الأقصى 3000 اسم في الملف.");
+  if (errors.length)
+    throw new Error(
+      `رُفض الملف كاملاً ولم يُحفظ شيء (${errors.length} مشكلة):\n${errors.slice(0, 15).join("\n")}`,
+    );
+  return out;
+}

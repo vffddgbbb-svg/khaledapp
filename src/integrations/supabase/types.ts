@@ -259,6 +259,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_department_schedule: { Args: { _rows: Json }; Returns: number }
       import_schedule: { Args: { _rows: Json }; Returns: number }
       review_swap: {
         Args: { _approve: boolean; _note?: string; _request_id: string }
