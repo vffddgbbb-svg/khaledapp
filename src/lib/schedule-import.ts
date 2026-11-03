@@ -48,7 +48,15 @@ export function parseHtmlTables(html: string): Grid[] {
     .filter((g) => g.length > 0);
 }
 
-export type Layout = "members-rows" | "dates-rows";
+export type Layout = "members-rows" | "dates-rows" | "dates-codes";
+
+/** Splits a cell holding several names (one per line, or separated by Arabic/Latin commas). */
+export function splitNames(cell: string) {
+  return cell
+    .split(/\r?\n|،|,/)
+    .map((n) => n.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
 
 export interface ImportOptions {
   layout: Layout;
@@ -178,6 +186,14 @@ export function readGrid(grid: Grid, o: ImportOptions) {
           code: cell,
           where: pos(r, c),
         });
+      } else if (o.layout === "dates-codes") {
+        for (const name of splitNames(cell))
+          rows.push({
+            date: iso(o.year, o.month, rowDay!),
+            assignee: name,
+            code: colLabel,
+            where: pos(r, c),
+          });
       } else {
         rows.push({
           date: iso(o.year, o.month, rowDay!),
