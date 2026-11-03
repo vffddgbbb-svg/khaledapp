@@ -15,11 +15,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 function Dashboard() {
   const [month, setMonth] = useState(() => { const now = new Date(); return { year: now.getFullYear(), month: now.getMonth() + 1 }; });
-  const [term, setTerm] = useState(""); const [mine, setMine] = useState(false); const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [term, setTerm] = useState(""); const [mine, setMine] = useState(false); const [dept, setDept] = useState(""); const [view, setView] = useState<"calendar" | "list">("calendar");
   const me = useQuery(meQuery); const shifts = useQuery(shiftsMonthQuery(month.year, month.month)); const profiles = useQuery(profilesQuery); const types = useQuery(shiftTypesQuery);
   const error = shifts.error || profiles.error || types.error || me.error;
   const loading = shifts.isPending || profiles.isPending || types.isPending || me.isPending;
-  const rows = filterShifts(shifts.data ?? [], profiles.data ?? [], term, mine ? me.data?.id : undefined);
+  const rows = filterShifts(shifts.data ?? [], profiles.data ?? [], term, mine ? me.data?.id : undefined).filter(s => !dept || s.shift_type_id === dept);
   function changeMonth(delta: number) { const date = new Date(month.year, month.month - 1 + delta, 1); setMonth({ year: date.getFullYear(), month: date.getMonth() + 1 }); }
   function shiftItem(shift: Tables<"shifts">) {
     const type = types.data?.find(t => t.id === shift.shift_type_id); const name = profiles.data?.find(p => p.id === shift.member_id)?.full_name || shift.assignee_label || "غير معيّن";
