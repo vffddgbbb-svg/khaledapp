@@ -32,9 +32,16 @@
     },
     {
       "idx": 4,
-      "version": "7",
+      "version": 7,
       "when": 1793721681127,
       "tag": "0004_department_name_import",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": 7,
+      "when": 1793825778838,
+      "tag": "0005_training_year_classification",
       "breakpoints": true
     }
   ]

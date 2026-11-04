@@ -5,7 +5,7 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
-
+export type TrainingYear = "Year 1" | "Year 2" | "Year 3" | "Year 4" | "Unclassified"
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -62,6 +62,27 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+        }
+        Relationships: []
+      }
+      profile_training_classification: {
+        Row: {
+          profile_id: string
+          training_year: TrainingYear
+          updated_by: string
+          updated_at: string
+        }
+        Insert: {
+          profile_id: string
+          training_year: TrainingYear
+          updated_by: string
+          updated_at?: string
+        }
+        Update: {
+          profile_id?: string
+          training_year?: TrainingYear
+          updated_by?: string
+          updated_at?: string
         }
         Relationships: []
       }
