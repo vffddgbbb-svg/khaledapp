@@ -65,6 +65,51 @@ export function readFlat(grid: Grid): ScheduleRow[] {
   });
 }
 
+export type FlatColumnMapping = { date: number; member: number; code: number };
+
+/** Suggests exact known-header matches only; unmatched columns remain unselected. */
+export function suggestFlatColumnMapping(grid: Grid): Partial<FlatColumnMapping> {
+  const header = (grid[0] ?? []).map((value) =>
+    value
+      .replace(/^\uFEFF/, "")
+      .trim()
+      .toLowerCase(),
+  );
+  const aliases: Record<keyof FlatColumnMapping, string[]> = {
+    date: ["date", "التاريخ"],
+    member: ["member", "العضو", "الاسم"],
+    code: ["code", "رمز المناوبة", "الرمز"],
+  } as const;
+  const mapping: Partial<FlatColumnMapping> = {};
+  for (const field of ["date", "member", "code"] as const) {
+    const matches = header.flatMap((value, index) =>
+      aliases[field].includes(value) ? [index] : [],
+    );
+    const [onlyMatch] = matches;
+    if (matches.length === 1 && onlyMatch !== undefined) mapping[field] = onlyMatch;
+  }
+  return mapping;
+}
+
+/** Reads flat rows using supervisor-reviewed zero-based source column indices. */
+export function readFlatMapped(grid: Grid, mapping: FlatColumnMapping): ScheduleRow[] {
+  const header = grid[0] ?? [];
+  const indices = [mapping.date, mapping.member, mapping.code];
+  if (indices.some((index) => !Number.isInteger(index) || index < 0 || index >= header.length))
+    throw new Error("اربط أعمدة التاريخ والعضو ورمز المناوبة قبل المتابعة.");
+  if (new Set(indices).size !== indices.length) throw new Error("يجب ربط كل حقل بعمود مصدر مختلف.");
+  if (grid.length <= 1) throw new Error("لا يحتوي الملف على صفوف بيانات.");
+  if (grid.length > 2001) throw new Error("الحد الأقصى 2000 مناوبة في الملف الواحد.");
+  return grid.slice(1).map((cells, index) => {
+    const date = normalizeDigits((cells[mapping.date] ?? "").trim());
+    const assignee = (cells[mapping.member] ?? "").trim();
+    const code = (cells[mapping.code] ?? "").trim();
+    if (!date || !assignee || !code || !validDate(date))
+      throw new Error(`السطر ${index + 2}: تاريخ أو اسم أو رمز غير صالح.`);
+    return { date, assignee, code, where: `السطر ${index + 2}` };
+  });
+}
+
 export function validDate(date: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
   const value = new Date(`${date}T12:00:00Z`);
@@ -208,7 +253,8 @@ export function resolveFlatByCode(rows: ScheduleRow[], types: { code: string }[]
     if (matched.length !== 1 || !name || !validDate(row.date)) return;
     const key = `${row.date}|${matched[0]!.code}|${name}`;
     const first = seen.get(key);
-    if (first) return void errors.push(`${where}: مكرر مع ${first} (${name}، ${code}، ${row.date}).`);
+    if (first)
+      return void errors.push(`${where}: مكرر مع ${first} (${name}، ${code}، ${row.date}).`);
     seen.set(key, where);
     out.push({ date: row.date, department: matched[0]!.code, name });
   });
@@ -227,7 +273,10 @@ export function missingAfterSave(
 ) {
   const codeById = new Map(types.map((t) => [t.id, normKey(t.code)]));
   const keys = new Set(
-    saved.map((s) => `${s.shift_date}|${codeById.get(s.shift_type_id ?? "") ?? ""}|${normKey(s.assignee_label)}`),
+    saved.map(
+      (s) =>
+        `${s.shift_date}|${codeById.get(s.shift_type_id ?? "") ?? ""}|${normKey(s.assignee_label)}`,
+    ),
   );
   return expected.filter((r) => !keys.has(`${r.date}|${normKey(r.department)}|${normKey(r.name)}`));
 }
