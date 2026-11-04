@@ -63,16 +63,38 @@ export const shiftsMonthQuery = (year: number, month: number) =>
     queryKey: ["shifts", year, month],
     queryFn: async () => {
       const { start, end } = monthRange(year, month);
-      const { data, error } = await supabase
-        .from("shifts")
-        .select("*")
-        .gte("shift_date", start)
-        .lte("shift_date", end)
-        .order("shift_date");
-      if (error) throw error;
-      return data;
+      return fetchShiftsRange(start, end);
     },
   });
+
+export const PAGE_SIZE = 1000;
+
+/** Collects every page (1000 rows each) until a short page, ordered by shift_date then id. */
+export async function fetchAllPages<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = data ?? [];
+    all.push(...rows);
+    if (rows.length < PAGE_SIZE) return all;
+  }
+}
+
+export function fetchShiftsRange(start: string, end: string) {
+  return fetchAllPages((from, to) =>
+    supabase
+      .from("shifts")
+      .select("*")
+      .gte("shift_date", start)
+      .lte("shift_date", end)
+      .order("shift_date")
+      .order("id")
+      .range(from, to),
+  );
+}
 
 export const swapsQuery = queryOptions({
   queryKey: ["swaps"],

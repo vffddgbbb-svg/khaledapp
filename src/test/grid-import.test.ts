@@ -277,3 +277,36 @@ describe("department grid", () => {
     expect(() => readDepartmentGrid(readGridFile('التاريخ,جناح\n2026-11-01,"أ\nأ"', false), 2026, 11)).toThrow();
   });
 });
+
+import { resolveFlatByCode, missingAfterSave } from "@/lib/import-validation";
+import { fetchAllPages } from "@/lib/app-data";
+import { vi } from "vitest";
+vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+
+describe("fixes: pagination, flat labels, department repeats, verification", () => {
+  it("fetches every 1000-row page until the last short page", async () => {
+    const total = 2345;
+    const calls: [number, number][] = [];
+    const rows = await fetchAllPages(async (from, to) => {
+      calls.push([from, to]);
+      return { data: Array.from({ length: Math.max(0, Math.min(to, total - 1) - from + 1) }, (_, i) => from + i), error: null };
+    });
+    expect(rows).toHaveLength(2345);
+    expect(calls).toEqual([[0, 999], [1000, 1999], [2000, 2999]]);
+  });
+  it("flat CSV keeps unlinked full names and requires an existing code", () => {
+    const rows = readSchedule("التاريخ,العضو,الرمز\n2026-11-01,د. خالد  عمر,D", false);
+    expect(resolveFlatByCode(rows, types)).toEqual([{ date: "2026-11-01", department: "D", name: "د. خالد عمر" }]);
+    expect(() => resolveFlatByCode(readSchedule("التاريخ,العضو,الرمز\n2026-11-01,خالد,جديد", false), types)).toThrow(/غير مسجل/);
+  });
+  it("allows a date repeated across rows but rejects the identical assignment", () => {
+    const ok = readDepartmentGrid(readGridFile("التاريخ,جناح\n2026-11-01,أ\n2026-11-01,ب\n", false), 2026, 11);
+    expect(ok.map((r) => r.name)).toEqual(["أ", "ب"]);
+    expect(() => readDepartmentGrid(readGridFile("التاريخ,جناح\n2026-11-01,أ\n2026-11-01,أ\n", false), 2026, 11)).toThrow(/مكرر/);
+  });
+  it("reports rows missing after save", () => {
+    const expected = [{ date: "2026-11-01", department: "D", name: "أ" }, { date: "2026-11-01", department: "D", name: "ب" }];
+    const saved = [{ shift_date: "2026-11-01", assignee_label: "أ", shift_type_id: "tD" }];
+    expect(missingAfterSave(expected, saved, types)).toEqual([expected[1]]);
+  });
+});
