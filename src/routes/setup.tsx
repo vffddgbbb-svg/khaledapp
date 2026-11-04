@@ -45,7 +45,7 @@ function SetupPage() {
       const { error: loginError } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
       if (loginError) throw new Error("أُنشئ الحساب، لكن تعذر الدخول. انتقل إلى صفحة تسجيل الدخول.");
       toast.success("تم إنشاء حساب المشرف 🎉");
-      navigate({ to: "/dashboard" });
+      navigate({ to: "/home" });
     } catch (err) {
       setError(errMsg(err));
     } finally {

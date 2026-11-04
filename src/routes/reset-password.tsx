@@ -34,7 +34,7 @@ function ResetPage() {
     setBusy(false);
     if (error) return setError(error.message);
     toast.success("تم تحديث كلمة المرور");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/home" });
   };
   return (
     <div className="grid min-h-screen place-items-center p-4">

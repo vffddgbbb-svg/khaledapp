@@ -21,7 +21,7 @@ export function SignInForm() {
       if (mode === "login") {
         const result = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (result.error) { setError("تعذر الدخول. تحقق من البريد وكلمة المرور ثم حاول مجدداً."); return; }
-        await navigate({ to: "/dashboard", replace: true });
+        await navigate({ to: "/home", replace: true });
       } else {
         const result = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
         if (result.error) { setError("تعذر إرسال رابط الاستعادة. حاول مجدداً لاحقاً."); return; }
