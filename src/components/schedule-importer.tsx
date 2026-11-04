@@ -6,10 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorState } from "@/components/states";
 import { FormSelect } from "@/components/form-select";
-import { profilesQuery, shiftTypesQuery, errMsg, AR_MONTHS, monthRange } from "@/lib/app-data";
+import {
+  profilesQuery,
+  shiftTypesQuery,
+  errMsg,
+  AR_MONTHS,
+  monthRange,
+  fetchShiftsRange,
+} from "@/lib/app-data";
 import {
   assertNoSkippedCells,
   findExisting,
+  missingAfterSave,
+  resolveFlatByCode,
+  type LabelRow,
   readFlat,
   readDepartmentGrid,
   readGridFile,
@@ -66,7 +76,8 @@ export function ScheduleImporter() {
       let problem = "";
       try {
         if (mode !== "flat") assertNoSkippedCells(skipped);
-        if (rows.length) resolveSchedule(rows, profiles.data ?? [], types.data ?? []);
+        if (rows.length && mode === "flat") resolveFlatByCode(rows, types.data ?? []);
+        else if (rows.length) resolveSchedule(rows, profiles.data ?? [], types.data ?? []);
         else problem = "لم يُعثر على أي مناوبة بهذه الإعدادات. راجع الاتجاه وصف/عمود العناوين.";
       } catch (e) {
         problem = errMsg(e);
@@ -104,20 +115,34 @@ export function ScheduleImporter() {
     setBusy(true);
     setSaveError("");
     try {
-      if (mode === "departments") {
-        const payload = parsed.rows.map((r) => ({
-          date: r.date,
-          department: r.code,
-          name: r.assignee,
-        }));
+      if (mode === "departments" || mode === "flat") {
+        const payload: LabelRow[] =
+          mode === "flat"
+            ? resolveFlatByCode(parsed.rows, types.data ?? [])
+            : parsed.rows.map((r) => ({ date: r.date, department: r.code, name: r.assignee }));
+        const dates = payload.map((r) => r.date).sort();
+        const first = dates[0]!;
+        const last = dates[dates.length - 1]!;
+        const before = await fetchShiftsRange(first, last);
+        const already = payload.length - missingAfterSave(payload, before, types.data ?? []).length;
+        if (already)
+          throw new Error(`رُفض الملف كاملاً: ${already} مناوبة مسجلة مسبقاً بنفس التاريخ والقسم والاسم.`);
         const { data, error } = await supabase.rpc("import_department_schedule", {
           _rows: payload,
         });
         if (error) throw error;
-        setResult(`حُفظت ${data} مناوبة (اسم) في الجدول.`);
+        await qc.invalidateQueries({ queryKey: ["shift_types"] });
+        const freshTypes = await qc.fetchQuery(shiftTypesQuery);
+        const after = await fetchShiftsRange(first, last);
+        const missing = missingAfterSave(payload, after, freshTypes);
+        if (data !== payload.length || missing.length || after.length - before.length !== payload.length)
+          throw new Error(
+            `تعذر تأكيد الحفظ: المتوقع ${payload.length}، أبلغ الخادم ${data}، وزاد العدد المقروء ${after.length - before.length}، والمفقود ${missing.length}. راجع الجدول قبل إعادة المحاولة.`,
+          );
+        setResult(`حُفظت ${payload.length} مناوبة وتم التحقق منها بعد القراءة من قاعدة البيانات.`);
         reset();
         await Promise.all(
-          ["shifts", "shift_types", "audit"].map((key) =>
+          ["shifts", "swap-shifts", "my-upcoming", "audit"].map((key) =>
             qc.invalidateQueries({ queryKey: [key] }),
           ),
         );
@@ -143,11 +168,13 @@ export function ScheduleImporter() {
       }
       const { data, error } = await supabase.rpc("import_schedule", { _rows: resolved });
       if (error) throw error;
-      setResult(
-        data === resolved.length
-          ? `حُفظت ${data} مناوبة.`
-          : `حُفظت ${data} من ${resolved.length}؛ أُضيف بعضها من مستخدم آخر أثناء الاستيراد ولم يتكرر.`,
-      );
+      const saved = await fetchShiftsRange(dates[0]!, dates[dates.length - 1]!);
+      const savedDup = findExisting(resolved, saved);
+      if (data !== resolved.length || savedDup.length !== resolved.length)
+        throw new Error(
+          `تعذر تأكيد الحفظ: المتوقع ${resolved.length}، أبلغ الخادم ${data}، ووُجد بعد القراءة ${savedDup.length}.`,
+        );
+      setResult(`حُفظت ${data} مناوبة وتم التحقق منها بعد القراءة من قاعدة البيانات.`);
       reset();
       await Promise.all(
         ["shifts", "swap-shifts", "my-upcoming", "audit"].map((key) =>

@@ -154,7 +154,6 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
   const out: DepartmentRow[] = [];
   const errors: string[] = [];
   const seen = new Set<string>();
-  const dates = new Set<string>();
   grid.slice(hIdx + 1).forEach((row, k) => {
     const line = hIdx + k + 2;
     if (row.every((c) => !c.trim())) return;
@@ -163,8 +162,6 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
       errors.push(`السطر ${line}: تاريخ «${date}» غير صالح أو خارج الشهر المختار.`);
       return;
     }
-    if (dates.has(date)) errors.push(`السطر ${line}: التاريخ ${date} مكرر.`);
-    dates.add(date);
     for (const { h, i } of depts) {
       for (const name of (row[i] ?? "")
         .split(/\r?\n|،/)
@@ -184,4 +181,53 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
       `رُفض الملف كاملاً ولم يُحفظ شيء (${errors.length} مشكلة):\n${errors.slice(0, 15).join("\n")}`,
     );
   return out;
+}
+
+const normKey = (s: string) => s.replace(/\s+/g, " ").trim();
+export type LabelRow = { date: string; department: string; name: string };
+
+/**
+ * Flat rows saved by full name (no account required). Every code must already
+ * exist in shift_types; unknown/ambiguous codes or in-file duplicates reject the file.
+ */
+export function resolveFlatByCode(rows: ScheduleRow[], types: { code: string }[]): LabelRow[] {
+  if (rows.length === 0 || rows.length > 2000)
+    throw new Error("يجب أن يحتوي الملف على 1 إلى 2000 مناوبة.");
+  const errors: string[] = [];
+  const seen = new Map<string, string>();
+  const out: LabelRow[] = [];
+  rows.forEach((row, index) => {
+    const where = row.where ?? `السطر ${index + 2}`;
+    const name = normKey(row.assignee);
+    const code = normKey(row.code);
+    const matched = types.filter((t) => normKey(t.code) === code);
+    if (!validDate(row.date)) errors.push(`${where}: تاريخ غير صالح «${row.date}».`);
+    if (!name) errors.push(`${where}: الاسم فارغ.`);
+    if (matched.length === 0) errors.push(`${where}: رمز المناوبة «${code}» غير مسجل مسبقاً.`);
+    else if (matched.length > 1) errors.push(`${where}: رمز المناوبة «${code}» ملتبس.`);
+    if (matched.length !== 1 || !name || !validDate(row.date)) return;
+    const key = `${row.date}|${matched[0]!.code}|${name}`;
+    const first = seen.get(key);
+    if (first) return void errors.push(`${where}: مكرر مع ${first} (${name}، ${code}، ${row.date}).`);
+    seen.set(key, where);
+    out.push({ date: row.date, department: matched[0]!.code, name });
+  });
+  if (errors.length)
+    throw new Error(
+      `رُفض الملف كاملاً ولم يُحفظ شيء (${errors.length} مشكلة):\n${errors.slice(0, 15).join("\n")}${errors.length > 15 ? "\n…" : ""}`,
+    );
+  return out;
+}
+
+/** Returns expected rows not found among saved shifts (matched by date, type code and full name). */
+export function missingAfterSave(
+  expected: LabelRow[],
+  saved: { shift_date: string; assignee_label: string; shift_type_id: string | null }[],
+  types: { id: string; code: string }[],
+) {
+  const codeById = new Map(types.map((t) => [t.id, normKey(t.code)]));
+  const keys = new Set(
+    saved.map((s) => `${s.shift_date}|${codeById.get(s.shift_type_id ?? "") ?? ""}|${normKey(s.assignee_label)}`),
+  );
+  return expected.filter((r) => !keys.has(`${r.date}|${normKey(r.department)}|${normKey(r.name)}`));
 }
