@@ -150,13 +150,8 @@ export function ScheduleImporter() {
       }
       const resolved = resolveSchedule(parsed.rows, profiles.data ?? [], types.data ?? []);
       const dates = resolved.map((r) => r.date).sort();
-      const { data: existing, error: readErr } = await supabase
-        .from("shifts")
-        .select("shift_date, member_id, shift_type_id")
-        .gte("shift_date", dates[0]!)
-        .lte("shift_date", dates[dates.length - 1]!);
-      if (readErr) throw readErr;
-      const dup = findExisting(resolved, existing ?? []);
+      const existing = await fetchShiftsRange(dates[0]!, dates[dates.length - 1]!);
+      const dup = findExisting(resolved, existing);
       if (dup.length) {
         const name = (id: string) => profiles.data?.find((p) => p.id === id)?.full_name ?? "";
         throw new Error(
@@ -201,7 +196,7 @@ export function ScheduleImporter() {
         HTML أو CSV. صيغة الأقسام: أعمدة اليوم والتاريخ (YYYY-MM-DD) ثم عمود لكل قسم، وكل اسم في سطر
         داخل الخلية؛ تُحفظ الأسماء كاملة حتى لو لم يكن لها حساب، ويُنشأ القسم تلقائياً. يدعم أيضاً
         الجدول الشبكي (الأسماء في الصفوف والأيام في الأعمدة أو العكس) والصيغة المسطحة (التاريخ،
-        العضو، رمز المناوبة). يجب أن تطابق الأسماء والرموز الفريق المسجل حرفياً؛ أي خطأ يرفض الملف
+        العضو، رمز المناوبة) وفيها يُحفظ الاسم كاملاً حتى بلا حساب، لكن يجب أن يكون الرمز مسجلاً مسبقاً. في الصيغ الشبكية يجب أن تطابق الأسماء والرموز الفريق المسجل حرفياً؛ أي خطأ يرفض الملف
         كاملاً.
       </p>
       <div className="space-y-2">
