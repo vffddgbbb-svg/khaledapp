@@ -10,6 +10,7 @@ import {
   RefreshCw,
   UserRound,
   Settings2,
+  House,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export function AppShell({
   const navigate = useNavigate();
   const sync = useLiveSync();
   const nav = [
+    { to: "/home" as const, label: "الرئيسية", icon: House },
     { to: "/dashboard" as const, label: "الجدول", icon: CalendarDays },
     { to: "/swaps" as const, label: "التبديل", icon: Repeat2 },
     ...(me.data?.isAdmin
@@ -85,7 +87,7 @@ export function AppShell({
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-8">
-          <Link to="/dashboard">
+          <Link to="/home">
             <Brand />
           </Link>
           <div className="flex shrink-0 items-center gap-1">

@@ -13,6 +13,6 @@ export const Route = createFileRoute("/")({
 });
 function Home() {
   const navigate = useNavigate();
-  useEffect(() => { supabase.auth.getSession().then(({ data }) => { if (data.session) navigate({ to: "/dashboard", replace: true }); }); }, [navigate]);
+  useEffect(() => { supabase.auth.getSession().then(({ data }) => { if (data.session) navigate({ to: "/home", replace: true }); }); }, [navigate]);
   return <Welcome />;
 }

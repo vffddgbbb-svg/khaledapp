@@ -16,10 +16,12 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedManageRouteImport } from './routes/_authenticated/manage'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedSwapsRouteImport } from './routes/_authenticated/swaps'
+import { Route as AuthenticatedModulesSlugRouteImport } from './routes/_authenticated/modules.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -55,6 +57,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedManageRoute = AuthenticatedManageRouteImport.update({
   id: '/manage',
   path: '/manage',
@@ -75,6 +82,12 @@ const AuthenticatedSwapsRoute = AuthenticatedSwapsRouteImport.update({
   path: '/swaps',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedModulesSlugRoute =
+  AuthenticatedModulesSlugRouteImport.update({
+    id: '/modules/$slug',
+    path: '/modules/$slug',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -83,10 +96,12 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/manage': typeof AuthenticatedManageRoute
   '/members': typeof AuthenticatedMembersRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/swaps': typeof AuthenticatedSwapsRoute
+  '/modules/$slug': typeof AuthenticatedModulesSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -95,10 +110,12 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/manage': typeof AuthenticatedManageRoute
   '/members': typeof AuthenticatedMembersRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/swaps': typeof AuthenticatedSwapsRoute
+  '/modules/$slug': typeof AuthenticatedModulesSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,10 +126,12 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/manage': typeof AuthenticatedManageRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/swaps': typeof AuthenticatedSwapsRoute
+  '/_authenticated/modules/$slug': typeof AuthenticatedModulesSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,10 +142,12 @@ export interface FileRouteTypes {
     | '/setup'
     | '/audit'
     | '/dashboard'
+    | '/home'
     | '/manage'
     | '/members'
     | '/profile'
     | '/swaps'
+    | '/modules/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -135,10 +156,12 @@ export interface FileRouteTypes {
     | '/setup'
     | '/audit'
     | '/dashboard'
+    | '/home'
     | '/manage'
     | '/members'
     | '/profile'
     | '/swaps'
+    | '/modules/$slug'
   id:
     | '__root__'
     | '/'
@@ -148,10 +171,12 @@ export interface FileRouteTypes {
     | '/setup'
     | '/_authenticated/audit'
     | '/_authenticated/dashboard'
+    | '/_authenticated/home'
     | '/_authenticated/manage'
     | '/_authenticated/members'
     | '/_authenticated/profile'
     | '/_authenticated/swaps'
+    | '/_authenticated/modules/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -213,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manage': {
       id: '/_authenticated/manage'
       path: '/manage'
@@ -241,25 +273,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSwapsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/modules/$slug': {
+      id: '/_authenticated/modules/$slug'
+      path: '/modules/$slug'
+      fullPath: '/modules/$slug'
+      preLoaderRoute: typeof AuthenticatedModulesSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedManageRoute: typeof AuthenticatedManageRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedSwapsRoute: typeof AuthenticatedSwapsRoute
+  AuthenticatedModulesSlugRoute: typeof AuthenticatedModulesSlugRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedManageRoute: AuthenticatedManageRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedSwapsRoute: AuthenticatedSwapsRoute,
+  AuthenticatedModulesSlugRoute: AuthenticatedModulesSlugRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
