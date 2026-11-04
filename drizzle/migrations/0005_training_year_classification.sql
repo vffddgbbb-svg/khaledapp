@@ -12,9 +12,9 @@ ALTER TABLE public.profile_training_classification ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.profile_training_classification FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.profile_training_classification TO authenticated;
 
-CREATE POLICY "Authenticated read training classification"
+CREATE POLICY "Admins read training classification"
   ON public.profile_training_classification FOR SELECT TO authenticated
-  USING (auth.uid() IS NOT NULL);
+  USING (public.has_role(auth.uid(), 'admin'));
 
 CREATE POLICY "Admins insert training classification"
   ON public.profile_training_classification FOR INSERT TO authenticated
@@ -30,6 +30,10 @@ CREATE POLICY "Admins update training classification"
     public.has_role(auth.uid(), 'admin')
     AND updated_by = auth.uid()
   );
+
+CREATE TRIGGER profile_training_classification_touch
+  BEFORE UPDATE ON public.profile_training_classification
+  FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
 -- No backfill: a missing row is displayed as Unclassified by the application.
 -- No DELETE policy: the supervisor assigns Unclassified explicitly instead.

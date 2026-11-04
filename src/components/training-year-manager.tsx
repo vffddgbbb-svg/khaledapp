@@ -35,6 +35,9 @@ export function TrainingYearManager({
       return data;
     },
   });
+  const classificationByProfile = new Map(
+    (classifications.data ?? []).map((row) => [row.profile_id, row]),
+  );
 
   async function save(profileId: string, trainingYear: TrainingYear) {
     setSavingId(profileId);
@@ -79,7 +82,7 @@ export function TrainingYearManager({
       ) : (
         <ul className="divide-y">
           {profiles.map((profile) => {
-            const row = classifications.data?.find((item) => item.profile_id === profile.id);
+            const row = classificationByProfile.get(profile.id);
             const selected = displayTrainingYear(row?.training_year);
             return (
               <li
@@ -93,7 +96,7 @@ export function TrainingYearManager({
                   className="max-w-48"
                   aria-label={`سنة تدريب ${profile.full_name || "العضو"}`}
                   value={selected}
-                  disabled={!currentUserId || savingId === profile.id}
+                  disabled={!currentUserId || savingId !== null}
                   onChange={(event) => void save(profile.id, event.target.value as TrainingYear)}
                 >
                   {TRAINING_YEARS.map((value) => (
