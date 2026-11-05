@@ -1,4 +1,8 @@
 # Roadmap
+- [ ] Current round: reject every unrecognized nonempty import cell and verify with unit/browser tests.
+- [ ] Current round: show real monthly roster statistics with explicit unclassified training years; persisted classification requires approved storage.
+- [ ] Current round: handoff, standalone notes and blood-bank CRUD — blocked pending approval for dedicated schema; connected database has none of these tables.
+- [ ] Current round: run tests/lint and inspect harness build; preserve production data and do not publish.
 - [ ] Verify current project connection, login/profile, grants/RLS and RPC permissions.
 - [ ] Complete current shift CRUD and safe HTML/CSV import with focused tests.
 - [ ] Verify mobile RTL, install metadata, guarded worker and honest offline states; add owner attribution.
