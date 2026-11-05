@@ -111,18 +111,24 @@ export function ScheduleImporter() {
   }
 
   async function save() {
-    if (!parsed) return;
+    if (!parsed || !grid || busy) return;
     setBusy(true);
     setSaveError("");
     try {
+      if (parsed.error || parsed.problem) throw new Error(parsed.error || parsed.problem);
+      if (mode === "departments") readDepartmentGrid(grid, year, month);
+      else if (mode === "flat") readFlat(grid);
+      else assertNoSkippedCells(readGrid(grid, { layout: mode, year, month, headerRow: headerRow - 1, labelCol: labelCol - 1 }).skipped);
+      if (!parsed.rows.length) throw new Error("لا توجد مناوبات صالحة للحفظ.");
       if (mode === "departments" || mode === "flat") {
         const payload: LabelRow[] =
           mode === "flat"
             ? resolveFlatByCode(parsed.rows, types.data ?? [])
             : parsed.rows.map((r) => ({ date: r.date, department: r.code, name: r.assignee }));
         const dates = payload.map((r) => r.date).sort();
-        const first = dates[0]!;
-        const last = dates[dates.length - 1]!;
+        const first = dates[0];
+        const last = dates[dates.length - 1];
+        if (!first || !last) throw new Error("لا توجد تواريخ للحفظ.");
         const before = await fetchShiftsRange(first, last);
         const already = payload.length - missingAfterSave(payload, before, types.data ?? []).length;
         if (already)
@@ -150,7 +156,10 @@ export function ScheduleImporter() {
       }
       const resolved = resolveSchedule(parsed.rows, profiles.data ?? [], types.data ?? []);
       const dates = resolved.map((r) => r.date).sort();
-      const existing = await fetchShiftsRange(dates[0]!, dates[dates.length - 1]!);
+      const first = dates[0];
+      const last = dates[dates.length - 1];
+      if (!first || !last) throw new Error("لا توجد تواريخ للحفظ.");
+      const existing = await fetchShiftsRange(first, last);
       const dup = findExisting(resolved, existing);
       if (dup.length) {
         const name = (id: string) => profiles.data?.find((p) => p.id === id)?.full_name ?? "";
@@ -163,7 +172,7 @@ export function ScheduleImporter() {
       }
       const { data, error } = await supabase.rpc("import_schedule", { _rows: resolved });
       if (error) throw error;
-      const saved = await fetchShiftsRange(dates[0]!, dates[dates.length - 1]!);
+      const saved = await fetchShiftsRange(first, last);
       const savedDup = findExisting(resolved, saved);
       if (data !== resolved.length || savedDup.length !== resolved.length)
         throw new Error(

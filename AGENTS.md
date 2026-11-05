@@ -16,3 +16,5 @@
 - Use the shared shell for a single Realtime subscription and mobile navigation; this keeps shared changes consistent across views.
 
 - Use the admin-gated save_shift RPC for manual shift creation and editing; enforce assignment uniqueness in the database so concurrent writes and imports cannot duplicate rows.
+- Validate all source cells before import RPC calls; reject unconsumed nonempty cells and overlapping HTML spans so read-back verification cannot hide source data loss.
+- Derive roster statistics from queried shifts and profile IDs or exact label identities; leave training years unclassified until dedicated approved storage exists, never overload scheduling fields for unrelated modules.
