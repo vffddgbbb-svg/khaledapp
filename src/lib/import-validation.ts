@@ -2,6 +2,7 @@ import Papa from "papaparse";
 import {
   normalizeDigits,
   parseHtmlTables,
+  splitNames,
   type Grid,
   type SkippedCell,
 } from "@/lib/schedule-import";
@@ -54,9 +55,15 @@ export function readFlat(grid: Grid): ScheduleRow[] {
     throw new Error("الأعمدة المطلوبة: التاريخ (YYYY-MM-DD)، العضو، رمز المناوبة.");
   if (aliases.some((names) => header.filter((name) => names.includes(name)).length !== 1))
     throw new Error("لا يجوز تكرار أعمدة التاريخ أو العضو أو الرمز.");
+  header.forEach((value, i) => {
+    if (value && !columns.includes(i)) throw new Error(`الصف 1، العمود ${i + 1}: عنوان غير مفهوم «${value}».`);
+  });
   if (grid.length <= 1) throw new Error("لا يحتوي الملف على مناوبات. الجدول الأصلي الكامل مطلوب.");
   if (grid.length > 2001) throw new Error("الحد الأقصى 2000 مناوبة في الملف الواحد.");
   return grid.slice(1).map((cells, index) => {
+    cells.forEach((value, i) => {
+      if (value.trim() && !columns.includes(i)) throw new Error(`السطر ${index + 2}، العمود ${i + 1}: خلية غير مفهومة «${value}»؛ رُفض الملف كاملاً.`);
+    });
     const [rawDate, assignee, code] = columns.map((i) => (cells[i] ?? "").trim());
     const date = normalizeDigits(rawDate ?? "");
     if (!date || !assignee || !code || !validDate(date))
@@ -138,13 +145,18 @@ export type DepartmentRow = { date: string; department: string; name: string; wh
 export function readDepartmentGrid(grid: Grid, year: number, month: number): DepartmentRow[] {
   const hIdx = grid.findIndex((r) => r.some((c) => c.replace(/^\uFEFF/, "").trim() === "التاريخ"));
   if (hIdx < 0) throw new Error("لم يُعثر على عمود «التاريخ» في صف العناوين.");
-  const header = grid[hIdx]!.map((c) =>
+  const sourceHeader = grid[hIdx];
+  if (!sourceHeader) throw new Error("صف العناوين غير موجود.");
+  const header = sourceHeader.map((c) =>
     c
       .replace(/^\uFEFF/, "")
       .replace(/\s+/g, " ")
       .trim(),
   );
   const dateCol = header.indexOf("التاريخ");
+  if (header.filter((h) => h === "التاريخ").length !== 1 || header.filter((h) => h === "اليوم").length > 1)
+    throw new Error("رُفض الملف كاملاً: أعمدة التاريخ أو اليوم مكررة.");
+  const dayCol = header.indexOf("اليوم");
   const skip = new Set(["التاريخ", "اليوم", ""]);
   const depts = header.map((h, i) => ({ h, i })).filter(({ h }) => !skip.has(h));
   if (!depts.length) throw new Error("لا توجد أعمدة أقسام بعد «اليوم» و«التاريخ».");
@@ -153,20 +165,30 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
   const prefix = `${year}-${String(month).padStart(2, "0")}-`;
   const out: DepartmentRow[] = [];
   const errors: string[] = [];
+  grid.slice(0, hIdx).forEach((row, r) => row.forEach((value, c) => {
+    if (value.trim()) errors.push(`السطر ${r + 1}، العمود ${c + 1}: خلية قبل العناوين غير مفهومة «${value}».`);
+  }));
   const seen = new Set<string>();
   grid.slice(hIdx + 1).forEach((row, k) => {
     const line = hIdx + k + 2;
     if (row.every((c) => !c.trim())) return;
+    row.forEach((value, c) => {
+      if (value.trim() && !header[c]) errors.push(`السطر ${line}، العمود ${c + 1}: خلية تحت عمود بلا عنوان «${value}».`);
+    });
     const date = normalizeDigits((row[dateCol] ?? "").trim());
     if (!validDate(date) || !date.startsWith(prefix)) {
       errors.push(`السطر ${line}: تاريخ «${date}» غير صالح أو خارج الشهر المختار.`);
       return;
     }
+    const day = norm(row[dayCol] ?? "").replace(/[أإآ]/g, "ا");
+    const weekdays = ["الاحد", "الاثنين", "الثلاثاء", "الاربعاء", "الخميس", "الجمعة", "السبت"];
+    if (day && day !== weekdays[new Date(`${date}T12:00:00Z`).getUTCDay()])
+      errors.push(`السطر ${line}، العمود ${dayCol + 1}: اسم اليوم «${row[dayCol]}» غير مفهوم أو لا يطابق التاريخ.`);
     for (const { h, i } of depts) {
-      for (const name of (row[i] ?? "")
-        .split(/\r?\n|،/)
-        .map((n) => n.replace(/\s+/g, " ").trim())
-        .filter(Boolean)) {
+      const cell = row[i] ?? "";
+      const names = splitNames(cell);
+      if (cell.trim() && !names.length) errors.push(`السطر ${line}، ${h}: خلية غير فارغة بلا اسم مفهوم «${cell}».`);
+      for (const name of names) {
         const key = `${date}|${h}|${name}`;
         if (seen.has(key)) errors.push(`السطر ${line}: «${name}» مكرر في ${h}.`);
         seen.add(key);
@@ -205,12 +227,13 @@ export function resolveFlatByCode(rows: ScheduleRow[], types: { code: string }[]
     if (!name) errors.push(`${where}: الاسم فارغ.`);
     if (matched.length === 0) errors.push(`${where}: رمز المناوبة «${code}» غير مسجل مسبقاً.`);
     else if (matched.length > 1) errors.push(`${where}: رمز المناوبة «${code}» ملتبس.`);
-    if (matched.length !== 1 || !name || !validDate(row.date)) return;
-    const key = `${row.date}|${matched[0]!.code}|${name}`;
+    const type = matched[0];
+    if (matched.length !== 1 || !type || !name || !validDate(row.date)) return;
+    const key = `${row.date}|${type.code}|${name}`;
     const first = seen.get(key);
     if (first) return void errors.push(`${where}: مكرر مع ${first} (${name}، ${code}، ${row.date}).`);
     seen.set(key, where);
-    out.push({ date: row.date, department: matched[0]!.code, name });
+    out.push({ date: row.date, department: type.code, name });
   });
   if (errors.length)
     throw new Error(
