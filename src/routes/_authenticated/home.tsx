@@ -10,9 +10,15 @@ export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
       { title: "الرئيسية — رفيق الطبيب" },
-      { name: "description", content: "لوحة رفيق الطبيب: مناوباتك اليوم، طلبات التبديل، واختصارات الوحدات." },
+      {
+        name: "description",
+        content: "لوحة رفيق الطبيب: مناوباتك اليوم، طلبات التبديل، واختصارات الوحدات.",
+      },
       { property: "og:title", content: "الرئيسية — رفيق الطبيب" },
-      { property: "og:description", content: "لوحة رفيق الطبيب: مناوباتك اليوم، طلبات التبديل، واختصارات الوحدات." },
+      {
+        property: "og:description",
+        content: "لوحة رفيق الطبيب: مناوباتك اليوم، طلبات التبديل، واختصارات الوحدات.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -38,7 +44,8 @@ function Home() {
   const myToday = mine.filter((s) => s.shift_date === today);
   const myUpcoming = mine.filter((s) => s.shift_date >= today);
   const pending = (swaps.data ?? []).filter((s) => s.status === "pending").length;
-  const typeName = (id: string | null) => types.data?.find((t) => t.id === id)?.name ?? "قسم غير محدد";
+  const typeName = (id: string | null) =>
+    types.data?.find((t) => t.id === id)?.name ?? "قسم غير محدد";
   const v = (n: number) => (loading || error ? "—" : n.toLocaleString("ar"));
 
   const cards = [
@@ -52,13 +59,24 @@ function Home() {
     <AppShell title="الرئيسية" subtitle="رفيق الطبيب — نظرة سريعة على يومك.">
       <section className="mb-6 rounded-2xl bg-navy p-6 text-navy-foreground sm:p-8">
         <p className="text-sm opacity-80">
-          {now.toLocaleDateString("ar", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {now.toLocaleDateString("ar", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
         </p>
         <h2 className="mt-2 font-display text-2xl font-extrabold sm:text-3xl">
           أهلاً{me.data?.fullName ? `، ${me.data.fullName}` : ""}
         </h2>
         <p className="mt-2 text-sm opacity-80">
-          {loading ? "جارٍ تحميل يومك…" : error ? "تعذر تحميل بياناتك." : myToday.length > 0 ? `لديك ${myToday.length.toLocaleString("ar")} مناوبة اليوم.` : "لا توجد مناوبة مسجّلة باسمك اليوم."}
+          {loading
+            ? "جارٍ تحميل يومك…"
+            : error
+              ? "تعذر تحميل بياناتك."
+              : myToday.length > 0
+                ? `لديك ${myToday.length.toLocaleString("ar")} مناوبة اليوم.`
+                : "لا توجد مناوبة مسجّلة باسمك اليوم."}
         </p>
       </section>
 
@@ -68,19 +86,31 @@ function Home() {
             <c.icon className="size-5 text-primary" aria-hidden />
             <p className="mt-3 text-2xl font-bold">{c.value}</p>
             <p className="mt-1 text-xs text-muted-foreground">{c.label}</p>
-            {c.note && <span className="mt-2 inline-block rounded-full bg-warning px-2 py-0.5 text-[11px] text-warning-foreground">{c.note}</span>}
+            {c.note && (
+              <span className="mt-2 inline-block rounded-full bg-warning px-2 py-0.5 text-[11px] text-warning-foreground">
+                {c.note}
+              </span>
+            )}
           </div>
         ))}
       </div>
 
       <h2 className="mb-3 text-lg font-bold">الاختصارات</h2>
       <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Link to="/dashboard" className="flex min-h-24 flex-col items-start justify-between rounded-xl border bg-secondary p-4 text-secondary-foreground focus-visible:outline-2 focus-visible:outline-ring">
+        <Link
+          to="/dashboard"
+          className="flex min-h-24 flex-col items-start justify-between rounded-xl border bg-secondary p-4 text-secondary-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        >
           <SHIFTS_ICON className="size-6" aria-hidden />
           <span className="font-semibold">المناوبات</span>
         </Link>
         {COMPANION_MODULES.map((m) => (
-          <Link key={m.slug} to="/modules/$slug" params={{ slug: m.slug }} className="flex min-h-24 flex-col items-start justify-between rounded-xl border bg-card p-4 focus-visible:outline-2 focus-visible:outline-ring">
+          <Link
+            key={m.slug}
+            to="/modules/$slug"
+            params={{ slug: m.slug }}
+            className="flex min-h-24 flex-col items-start justify-between rounded-xl border bg-card p-4 focus-visible:outline-2 focus-visible:outline-ring"
+          >
             <m.icon className="size-6 text-primary" aria-hidden />
             <span className="font-semibold">{m.label}</span>
             <span className="text-[11px] text-muted-foreground">قيد التجهيز</span>
@@ -92,10 +122,19 @@ function Home() {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold">مهام اليوم</h2>
-            <Link to="/dashboard" className="flex items-center text-sm text-primary">الجدول <ChevronLeft className="size-4" /></Link>
+            <Link to="/dashboard" className="flex items-center text-sm text-primary">
+              الجدول <ChevronLeft className="size-4" />
+            </Link>
           </div>
-          {loading ? <LoadingState /> : error ? <ErrorState message={errMsg(error)} /> : myToday.length === 0 ? (
-            <EmptyState title="لا مناوبات لك اليوم" icon={<CalendarDays className="size-7" aria-hidden />} />
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState message={errMsg(error)} />
+          ) : myToday.length === 0 ? (
+            <EmptyState
+              title="لا مناوبات لك اليوم"
+              icon={<CalendarDays className="size-7" aria-hidden />}
+            />
           ) : (
             <ul className="space-y-2">
               {myToday.map((s) => (

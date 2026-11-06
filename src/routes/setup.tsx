@@ -16,7 +16,10 @@ export const Route = createFileRoute("/setup")({
   head: () => ({
     meta: [
       { title: "الإعداد الأولي — رفيق المناوبات" },
-      { name: "description", content: "مطالبة مالك التطبيق بحساب المشرف باستخدام رمز إعداد لمرة واحدة." },
+      {
+        name: "description",
+        content: "مطالبة مالك التطبيق بحساب المشرف باستخدام رمز إعداد لمرة واحدة.",
+      },
       { property: "og:title", content: "الإعداد الأولي — رفيق المناوبات" },
       { property: "og:description", content: "مطالبة المالك بحساب المشرف." },
       { property: "og:type", content: "website" },
@@ -42,8 +45,12 @@ function SetupPage() {
     setBusy(true);
     try {
       await claim({ data: form });
-      const { error: loginError } = await supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password });
-      if (loginError) throw new Error("أُنشئ الحساب، لكن تعذر الدخول. انتقل إلى صفحة تسجيل الدخول.");
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      if (loginError)
+        throw new Error("أُنشئ الحساب، لكن تعذر الدخول. انتقل إلى صفحة تسجيل الدخول.");
       toast.success("تم إنشاء حساب المشرف 🎉");
       navigate({ to: "/home" });
     } catch (err) {
@@ -57,7 +64,9 @@ function SetupPage() {
     <div className="grid min-h-screen place-items-center p-4">
       <div className="w-full max-w-md space-y-5 rounded-3xl bg-card p-8 shadow-card">
         <div className="flex items-center gap-3">
-          <div className="grid size-12 place-items-center rounded-2xl bg-accent text-accent-foreground"><KeyRound aria-hidden /></div>
+          <div className="grid size-12 place-items-center rounded-2xl bg-accent text-accent-foreground">
+            <KeyRound aria-hidden />
+          </div>
           <h1 className="text-2xl font-bold">الإعداد الأولي للمشرف</h1>
         </div>
         {status.isLoading && <LoadingState />}
@@ -65,7 +74,9 @@ function SetupPage() {
         {status.data?.adminExists && (
           <div className="space-y-3">
             <p>تم إعداد حساب المشرف مسبقاً، وهذه الصفحة مغلقة الآن.</p>
-            <Button asChild className="rounded-full"><Link to="/auth">تسجيل الدخول</Link></Button>
+            <Button asChild className="rounded-full">
+              <Link to="/auth">تسجيل الدخول</Link>
+            </Button>
           </div>
         )}
         {status.data && !status.data.adminExists && !status.data.tokenConfigured && (
@@ -73,21 +84,34 @@ function SetupPage() {
         )}
         {status.data && !status.data.adminExists && status.data.tokenConfigured && (
           <form onSubmit={submit} className="space-y-4">
-            <p className="text-sm text-muted-foreground">أدخل رمز الإعداد السري الذي ضبطته في أسرار المشروع. يعمل مرة واحدة فقط.</p>
+            <p className="text-sm text-muted-foreground">
+              أدخل رمز الإعداد السري الذي ضبطته في أسرار المشروع. يعمل مرة واحدة فقط.
+            </p>
             {error && <ErrorState message={error} />}
-            {([
-              ["fullName", "الاسم الكامل", "text", "name"],
-              ["email", "البريد الإلكتروني", "email", "email"],
-              ["password", "كلمة المرور (10 أحرف+)", "password", "new-password"],
-              ["token", "رمز الإعداد", "password", "off"],
-            ] as const).map(([k, label, type, ac]) => (
+            {(
+              [
+                ["fullName", "الاسم الكامل", "text", "name"],
+                ["email", "البريد الإلكتروني", "email", "email"],
+                ["password", "كلمة المرور (10 أحرف+)", "password", "new-password"],
+                ["token", "رمز الإعداد", "password", "off"],
+              ] as const
+            ).map(([k, label, type, ac]) => (
               <div key={k} className="space-y-2">
                 <Label htmlFor={k}>{label}</Label>
-                <Input id={k} type={type} required autoComplete={ac} dir={k === "fullName" ? "rtl" : "ltr"} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                <Input
+                  id={k}
+                  type={type}
+                  required
+                  autoComplete={ac}
+                  dir={k === "fullName" ? "rtl" : "ltr"}
+                  value={form[k]}
+                  onChange={(e) => setForm({ ...form, [k]: e.target.value })}
+                />
               </div>
             ))}
             <Button type="submit" className="w-full rounded-full" size="lg" disabled={busy}>
-              {busy && <Loader2 className="size-4 animate-spin" aria-hidden />} المطالبة بحساب المشرف
+              {busy && <Loader2 className="size-4 animate-spin" aria-hidden />} المطالبة بحساب
+              المشرف
             </Button>
           </form>
         )}

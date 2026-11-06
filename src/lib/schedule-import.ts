@@ -16,7 +16,10 @@ export function placeCells(rows: { text: string; rowspan: number; colspan: numbe
       while (current[c] !== undefined) c++;
       const rs = cell.rowspan;
       const cs = cell.colspan;
-      if (![rs, cs].every((v) => Number.isInteger(v) && v >= 1 && v <= MAX_SPAN) || r + rs > rows.length)
+      if (
+        ![rs, cs].every((v) => Number.isInteger(v) && v >= 1 && v <= MAX_SPAN) ||
+        r + rs > rows.length
+      )
         throw new Error(`الصف ${r + 1}: امتداد خلية غير صالح أو خارج الجدول.`);
       for (let dr = 0; dr < rs; dr++) {
         const target = (grid[r + dr] ??= []);
@@ -48,7 +51,11 @@ export function parseHtmlTables(html: string): Grid[] {
                 copy.querySelectorAll("br").forEach((el) => el.replaceWith("\n"));
                 copy.querySelectorAll("p,div,li").forEach((el) => el.append("\n"));
                 return {
-                  text: (copy.textContent ?? "").split(/\r?\n/).map((s) => s.replace(/\s+/g, " ").trim()).join("\n").trim(),
+                  text: (copy.textContent ?? "")
+                    .split(/\r?\n/)
+                    .map((s) => s.replace(/\s+/g, " ").trim())
+                    .join("\n")
+                    .trim(),
                   rowspan: Number(cell.getAttribute("rowspan") ?? 1),
                   colspan: Number(cell.getAttribute("colspan") ?? 1),
                 };
@@ -118,7 +125,23 @@ export function parseDay(label: string, dim: number, year?: number, month?: numb
     return d >= 1 && d <= dim && d <= daysInMonth(y, m) ? d : null;
   }
   const rest = s.replace(/\d+/g, "").trim();
-  if (rest && !["الأحد", "الاحد", "الإثنين", "الاثنين", "الإثنين", "الثلاثاء", "الأربعاء", "الاربعاء", "الخميس", "الجمعة", "السبت"].includes(rest)) return null;
+  if (
+    rest &&
+    ![
+      "الأحد",
+      "الاحد",
+      "الإثنين",
+      "الاثنين",
+      "الإثنين",
+      "الثلاثاء",
+      "الأربعاء",
+      "الاربعاء",
+      "الخميس",
+      "الجمعة",
+      "السبت",
+    ].includes(rest)
+  )
+    return null;
   const nums = s.match(/\d+/g) ?? [];
   if (nums.length !== 1) return null;
   const d = Number(nums[0]);
@@ -141,9 +164,16 @@ export function readGrid(grid: Grid, o: ImportOptions) {
   const dim = daysInMonth(o.year, o.month);
   const rows: ImportedAssignment[] = [];
   const skipped: SkippedCell[] = [];
-  grid.slice(0, o.headerRow).forEach((row, r) => row.forEach((value, c) => {
-    if (value.trim()) skipped.push({ where: pos(r, c), value, reason: "خلية قبل صف العناوين؛ اختر صف العناوين الصحيح أو أزل المقدمة" });
-  }));
+  grid.slice(0, o.headerRow).forEach((row, r) =>
+    row.forEach((value, c) => {
+      if (value.trim())
+        skipped.push({
+          where: pos(r, c),
+          value,
+          reason: "خلية قبل صف العناوين؛ اختر صف العناوين الصحيح أو أزل المقدمة",
+        });
+    }),
+  );
   const membersRows = o.layout === "members-rows";
   const colDays = new Map<number, number | null>();
   header.forEach((label, c) => {
@@ -207,7 +237,8 @@ export function readGrid(grid: Grid, o: ImportOptions) {
         });
       } else if (o.layout === "dates-codes") {
         const names = splitNames(cell);
-        if (!names.length) skipped.push({ where: pos(r, c), value: cell, reason: "خلية غير فارغة بلا اسم مفهوم" });
+        if (!names.length)
+          skipped.push({ where: pos(r, c), value: cell, reason: "خلية غير فارغة بلا اسم مفهوم" });
         if (rowDay === null) continue;
         for (const name of names)
           rows.push({

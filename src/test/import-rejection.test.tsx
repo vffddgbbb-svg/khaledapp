@@ -14,14 +14,23 @@ vi.mock("@/lib/app-data", () => ({
   monthRange: () => ({ start: "2026-11-01", end: "2026-11-30" }),
   fetchShiftsRange: vi.fn(),
 }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); });
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 describe("importer refuses source data loss before any RPC", () => {
   it.each([
     ["departments", "اليوم,التاريخ,جناح,\nالأحد,2026-11-01,اسم اختبار,خلية مفقودة"],
     ["flat", "date,member,code,\n2026-11-01,اسم اختبار,جناح,خلية مفقودة"],
     ["members-rows", "الاسم,1,\nاسم اختبار,جناح,خلية مفقودة"],
   ])("blocks %s input with a nonempty unheaded cell", async (mode, text) => {
-    render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><ScheduleImporter /></QueryClientProvider>);
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <ScheduleImporter />
+      </QueryClientProvider>,
+    );
     const input = screen.getByLabelText("ملف الجدول");
     await waitFor(() => expect(input).not.toBeDisabled());
     const file = new File([text], "unit-only.csv", { type: "text/csv" });

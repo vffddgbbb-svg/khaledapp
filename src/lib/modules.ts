@@ -1,4 +1,12 @@
-import { Activity, ClipboardList, Droplets, NotebookPen, Pill, Siren, Stethoscope } from "lucide-react";
+import {
+  Activity,
+  ClipboardList,
+  Droplets,
+  NotebookPen,
+  Pill,
+  Siren,
+  Stethoscope,
+} from "lucide-react";
 
 /** Doctor-companion modules. Only "shifts" is implemented; the rest are honest placeholders. */
 export const COMPANION_MODULES = [

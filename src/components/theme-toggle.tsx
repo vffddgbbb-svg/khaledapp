@@ -12,7 +12,12 @@ export function ThemeToggle() {
     localStorage.setItem("theme", next ? "dark" : "light");
   };
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label={dark ? "الوضع الفاتح" : "الوضع الداكن"}>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggle}
+      aria-label={dark ? "الوضع الفاتح" : "الوضع الداكن"}
+    >
       {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
     </Button>
   );
