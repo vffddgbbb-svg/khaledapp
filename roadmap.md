@@ -1,4 +1,7 @@
 # Roadmap
+- [ ] November 6: fix invalid-date regression, format application code, and verify tests/lint/harness build.
+- [ ] November 6: read-only verification of connected schema/RLS; wire medical modules only if dedicated storage already exists.
+- [ ] November 6: preserve schedules and credentials; do not create test rows or publish production.
 - [ ] Current round: reject every unrecognized nonempty import cell and verify with unit/browser tests.
 - [ ] Current round: show real monthly roster statistics with explicit unclassified training years; persisted classification requires approved storage.
 - [ ] Current round: handoff, standalone notes and blood-bank CRUD — blocked pending approval for dedicated schema; connected database has none of these tables.

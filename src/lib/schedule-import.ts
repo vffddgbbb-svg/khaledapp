@@ -109,10 +109,13 @@ export function parseDay(label: string, dim: number, year?: number, month?: numb
   const s = normalizeDigits(label).trim();
   const full = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
   if (full) {
-    if (year !== undefined && Number(full[1]) !== year) return null;
-    if (month !== undefined && Number(full[2]) !== month) return null;
+    const y = Number(full[1]);
+    const m = Number(full[2]);
+    if (m < 1 || m > 12) return null;
+    if (year !== undefined && y !== year) return null;
+    if (month !== undefined && m !== month) return null;
     const d = Number(full[3]);
-    return d >= 1 && d <= dim ? d : null;
+    return d >= 1 && d <= dim && d <= daysInMonth(y, m) ? d : null;
   }
   const rest = s.replace(/\d+/g, "").trim();
   if (rest && !["الأحد", "الاحد", "الإثنين", "الاثنين", "الإثنين", "الثلاثاء", "الأربعاء", "الاربعاء", "الخميس", "الجمعة", "السبت"].includes(rest)) return null;
