@@ -52,8 +52,7 @@ function Home() {
     { label: "مناوباتي اليوم", value: v(myToday.length), icon: CalendarDays },
     { label: "مناوباتي القادمة هذا الشهر", value: v(myUpcoming.length), icon: ClipboardCheck },
     { label: "طلبات تبديل معلّقة", value: v(pending), icon: Repeat2 },
-    { label: "مرضى قيد المتابعة", value: "—", icon: Stethoscope, note: "قيد التجهيز" },
-  ];
+  ] as { label: string; value: string; icon: typeof CalendarDays; note?: string }[];
 
   return (
     <AppShell title="الرئيسية" subtitle="رفيق الطبيب — نظرة سريعة على يومك.">
@@ -80,7 +79,7 @@ function Home() {
         </p>
       </section>
 
-      <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map((c) => (
           <div key={c.label} className="rounded-xl border bg-card p-4">
             <c.icon className="size-5 text-primary" aria-hidden />

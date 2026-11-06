@@ -27,8 +27,10 @@ export function Brand() {
         <Heart className="brand-heart size-3" />
       </span>
       <span className="min-w-0">
-        <span className="block truncate font-display text-xl font-extrabold">رفيق المناوبات</span>
-        <span className="block text-xs text-muted-foreground">كل مناوبة، في مكانها</span>
+        <span className="block truncate font-display text-xl font-extrabold">رفيق الطبيب</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          رفيق المناوبات · إدارة المناوبات اليومية
+        </span>
       </span>
     </span>
   );
