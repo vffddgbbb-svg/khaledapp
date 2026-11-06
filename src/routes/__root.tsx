@@ -23,7 +23,10 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-primary">٤٠٤</h1>
         <h2 className="mt-4 text-xl font-semibold">الصفحة غير موجودة</h2>
         <div className="mt-6">
-          <Link to="/" className="inline-flex rounded-full bg-primary px-5 py-2 font-medium text-primary-foreground">
+          <Link
+            to="/"
+            className="inline-flex rounded-full bg-primary px-5 py-2 font-medium text-primary-foreground"
+          >
             العودة للرئيسية
           </Link>
         </div>
@@ -109,7 +112,9 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
-    registerOfflineApp().catch(() => { /* Offline support is optional; never block login. */ });
+    registerOfflineApp().catch(() => {
+      /* Offline support is optional; never block login. */
+    });
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();

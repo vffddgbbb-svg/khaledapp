@@ -118,7 +118,16 @@ export function ScheduleImporter() {
       if (parsed.error || parsed.problem) throw new Error(parsed.error || parsed.problem);
       if (mode === "departments") readDepartmentGrid(grid, year, month);
       else if (mode === "flat") readFlat(grid);
-      else assertNoSkippedCells(readGrid(grid, { layout: mode, year, month, headerRow: headerRow - 1, labelCol: labelCol - 1 }).skipped);
+      else
+        assertNoSkippedCells(
+          readGrid(grid, {
+            layout: mode,
+            year,
+            month,
+            headerRow: headerRow - 1,
+            labelCol: labelCol - 1,
+          }).skipped,
+        );
       if (!parsed.rows.length) throw new Error("لا توجد مناوبات صالحة للحفظ.");
       if (mode === "departments" || mode === "flat") {
         const payload: LabelRow[] =
@@ -132,7 +141,9 @@ export function ScheduleImporter() {
         const before = await fetchShiftsRange(first, last);
         const already = payload.length - missingAfterSave(payload, before, types.data ?? []).length;
         if (already)
-          throw new Error(`رُفض الملف كاملاً: ${already} مناوبة مسجلة مسبقاً بنفس التاريخ والقسم والاسم.`);
+          throw new Error(
+            `رُفض الملف كاملاً: ${already} مناوبة مسجلة مسبقاً بنفس التاريخ والقسم والاسم.`,
+          );
         const { data, error } = await supabase.rpc("import_department_schedule", {
           _rows: payload,
         });
@@ -141,7 +152,11 @@ export function ScheduleImporter() {
         const freshTypes = await qc.fetchQuery(shiftTypesQuery);
         const after = await fetchShiftsRange(first, last);
         const missing = missingAfterSave(payload, after, freshTypes);
-        if (data !== payload.length || missing.length || after.length - before.length !== payload.length)
+        if (
+          data !== payload.length ||
+          missing.length ||
+          after.length - before.length !== payload.length
+        )
           throw new Error(
             `تعذر تأكيد الحفظ: المتوقع ${payload.length}، أبلغ الخادم ${data}، وزاد العدد المقروء ${after.length - before.length}، والمفقود ${missing.length}. راجع الجدول قبل إعادة المحاولة.`,
           );
@@ -205,8 +220,9 @@ export function ScheduleImporter() {
         HTML أو CSV. صيغة الأقسام: أعمدة اليوم والتاريخ (YYYY-MM-DD) ثم عمود لكل قسم، وكل اسم في سطر
         داخل الخلية؛ تُحفظ الأسماء كاملة حتى لو لم يكن لها حساب، ويُنشأ القسم تلقائياً. يدعم أيضاً
         الجدول الشبكي (الأسماء في الصفوف والأيام في الأعمدة أو العكس) والصيغة المسطحة (التاريخ،
-        العضو، رمز المناوبة) وفيها يُحفظ الاسم كاملاً حتى بلا حساب، لكن يجب أن يكون الرمز مسجلاً مسبقاً. في الصيغ الشبكية يجب أن تطابق الأسماء والرموز الفريق المسجل حرفياً؛ أي خطأ يرفض الملف
-        كاملاً.
+        العضو، رمز المناوبة) وفيها يُحفظ الاسم كاملاً حتى بلا حساب، لكن يجب أن يكون الرمز مسجلاً
+        مسبقاً. في الصيغ الشبكية يجب أن تطابق الأسماء والرموز الفريق المسجل حرفياً؛ أي خطأ يرفض
+        الملف كاملاً.
       </p>
       <div className="space-y-2">
         <Label htmlFor="schedule-file">ملف الجدول</Label>

@@ -6,10 +6,110 @@ import { ErrorState, EmptyState, LoadingState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { meQuery, profilesQuery, errMsg } from "@/lib/app-data";
 import { supabase } from "@/integrations/supabase/client";
-export const Route = createFileRoute("/_authenticated/audit")({ head: () => ({ meta: [{ title: "سجل التدقيق — رفيق المناوبات" }, { name: "description", content: "سجل تغييرات الفريق والمراجعات للمشرف." }, { property: "og:title", content: "سجل التدقيق — رفيق المناوبات" }, { property: "og:description", content: "سجل تغييرات الفريق." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }), component: Audit });
+export const Route = createFileRoute("/_authenticated/audit")({
+  head: () => ({
+    meta: [
+      { title: "سجل التدقيق — رفيق المناوبات" },
+      { name: "description", content: "سجل تغييرات الفريق والمراجعات للمشرف." },
+      { property: "og:title", content: "سجل التدقيق — رفيق المناوبات" },
+      { property: "og:description", content: "سجل تغييرات الفريق." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Audit,
+});
 function Audit() {
-  const me = useQuery(meQuery); const profiles = useQuery(profilesQuery); const [page, setPage] = useState(0);
-  const audit = useQuery({ queryKey: ["audit", page], enabled: Boolean(me.data?.isAdmin), queryFn: async () => { const { data, error } = await supabase.from("audit_log").select("*").order("id", { ascending: false }).range(page * 50, page * 50 + 49); if (error) throw error; return data; } });
-  const actions: Record<string,string> = { insert: "إضافة", update: "تعديل", delete: "حذف", claim_admin: "إعداد المشرف", create_member: "إنشاء عضو", delete_member: "حذف عضو" }; const entities: Record<string,string> = { shifts: "مناوبة", swap_requests: "طلب تبديل", shift_types: "نوع مناوبة", profiles: "حساب", user_roles: "صلاحية" };
-  return <AppShell title="سجل التدقيق" subtitle="من غيّر ماذا ومتى.">{me.isPending ? <LoadingState /> : me.error ? <ErrorState message={errMsg(me.error)} /> : !me.data?.isAdmin ? <EmptyState title="السجل للمشرف فقط" /> : audit.isPending ? <LoadingState /> : audit.error ? <ErrorState message={errMsg(audit.error)} /> : <>{!audit.data?.length ? <EmptyState title="لا توجد أحداث في هذه الصفحة" /> : <div className="divide-y">{audit.data.map(row => <article key={row.id} className="py-4"><div className="flex flex-wrap justify-between gap-2"><h2 className="font-semibold">{actions[row.action] ?? row.action} · {entities[row.entity] ?? row.entity}</h2><time className="text-xs text-muted-foreground">{new Date(row.created_at).toLocaleString("ar")}</time></div><p className="mt-2 text-sm text-muted-foreground">{profiles.data?.find(p => p.id === row.actor_id)?.full_name ?? "عملية خادمية أو حساب محذوف"}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">تفاصيل التغيير</summary><pre dir="ltr" className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted p-3">{JSON.stringify(row.details, null, 2)}</pre></details></article>)}</div>}<div className="mt-5 flex gap-2"><Button variant="outline" disabled={page === 0} onClick={() => setPage(p => p - 1)}>الأحدث</Button><Button variant="outline" disabled={(audit.data?.length ?? 0) < 50} onClick={() => setPage(p => p + 1)}>الأقدم</Button></div></>}</AppShell>;
+  const me = useQuery(meQuery);
+  const profiles = useQuery(profilesQuery);
+  const [page, setPage] = useState(0);
+  const audit = useQuery({
+    queryKey: ["audit", page],
+    enabled: Boolean(me.data?.isAdmin),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_log")
+        .select("*")
+        .order("id", { ascending: false })
+        .range(page * 50, page * 50 + 49);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const actions: Record<string, string> = {
+    insert: "إضافة",
+    update: "تعديل",
+    delete: "حذف",
+    claim_admin: "إعداد المشرف",
+    create_member: "إنشاء عضو",
+    delete_member: "حذف عضو",
+  };
+  const entities: Record<string, string> = {
+    shifts: "مناوبة",
+    swap_requests: "طلب تبديل",
+    shift_types: "نوع مناوبة",
+    profiles: "حساب",
+    user_roles: "صلاحية",
+  };
+  return (
+    <AppShell title="سجل التدقيق" subtitle="من غيّر ماذا ومتى.">
+      {me.isPending ? (
+        <LoadingState />
+      ) : me.error ? (
+        <ErrorState message={errMsg(me.error)} />
+      ) : !me.data?.isAdmin ? (
+        <EmptyState title="السجل للمشرف فقط" />
+      ) : audit.isPending ? (
+        <LoadingState />
+      ) : audit.error ? (
+        <ErrorState message={errMsg(audit.error)} />
+      ) : (
+        <>
+          {!audit.data?.length ? (
+            <EmptyState title="لا توجد أحداث في هذه الصفحة" />
+          ) : (
+            <div className="divide-y">
+              {audit.data.map((row) => (
+                <article key={row.id} className="py-4">
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <h2 className="font-semibold">
+                      {actions[row.action] ?? row.action} · {entities[row.entity] ?? row.entity}
+                    </h2>
+                    <time className="text-xs text-muted-foreground">
+                      {new Date(row.created_at).toLocaleString("ar")}
+                    </time>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {profiles.data?.find((p) => p.id === row.actor_id)?.full_name ??
+                      "عملية خادمية أو حساب محذوف"}
+                  </p>
+                  <details className="mt-2 text-xs">
+                    <summary className="cursor-pointer">تفاصيل التغيير</summary>
+                    <pre
+                      dir="ltr"
+                      className="mt-2 max-h-60 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted p-3"
+                    >
+                      {JSON.stringify(row.details, null, 2)}
+                    </pre>
+                  </details>
+                </article>
+              ))}
+            </div>
+          )}
+          <div className="mt-5 flex gap-2">
+            <Button variant="outline" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+              الأحدث
+            </Button>
+            <Button
+              variant="outline"
+              disabled={(audit.data?.length ?? 0) < 50}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              الأقدم
+            </Button>
+          </div>
+        </>
+      )}
+    </AppShell>
+  );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAssignments, safeEqual } from "@/lib/schedule-import";
+import { buildAssignments, parseDay, safeEqual } from "@/lib/schedule-import";
 
 describe("schedule import", () => {
   it("reads members-as-rows grids and skips empty cells (no invented assignments)", () => {
@@ -22,12 +22,12 @@ describe("schedule import", () => {
     ]);
   });
 
-  it("ignores days outside the chosen month", () => {
+  it("rejects the entire import for days outside the chosen month", () => {
     const grid = [
       ["", "31"],
       ["أحمد", "ص"],
     ];
-    expect(
+    expect(() =>
       buildAssignments(grid, {
         layout: "members-rows",
         year: 2026,
@@ -35,7 +35,19 @@ describe("schedule import", () => {
         headerRow: 0,
         labelCol: 0,
       }),
-    ).toEqual([]);
+    ).toThrow(/رُفض الملف كاملاً/);
+  });
+
+  it.each(["2026-02-30", "2026-13-01", "2026-00-01"])(
+    "rejects an impossible full date %s even with a loose day limit",
+    (label) => {
+      expect(parseDay(label, 31)).toBeNull();
+    },
+  );
+
+  it("accepts the leap day only in a leap year", () => {
+    expect(parseDay("2028-02-29", 31)).toBe(29);
+    expect(parseDay("2026-02-29", 31)).toBeNull();
   });
 });
 

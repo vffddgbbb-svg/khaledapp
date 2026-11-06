@@ -56,13 +56,17 @@ export function readFlat(grid: Grid): ScheduleRow[] {
   if (aliases.some((names) => header.filter((name) => names.includes(name)).length !== 1))
     throw new Error("لا يجوز تكرار أعمدة التاريخ أو العضو أو الرمز.");
   header.forEach((value, i) => {
-    if (value && !columns.includes(i)) throw new Error(`الصف 1، العمود ${i + 1}: عنوان غير مفهوم «${value}».`);
+    if (value && !columns.includes(i))
+      throw new Error(`الصف 1، العمود ${i + 1}: عنوان غير مفهوم «${value}».`);
   });
   if (grid.length <= 1) throw new Error("لا يحتوي الملف على مناوبات. الجدول الأصلي الكامل مطلوب.");
   if (grid.length > 2001) throw new Error("الحد الأقصى 2000 مناوبة في الملف الواحد.");
   return grid.slice(1).map((cells, index) => {
     cells.forEach((value, i) => {
-      if (value.trim() && !columns.includes(i)) throw new Error(`السطر ${index + 2}، العمود ${i + 1}: خلية غير مفهومة «${value}»؛ رُفض الملف كاملاً.`);
+      if (value.trim() && !columns.includes(i))
+        throw new Error(
+          `السطر ${index + 2}، العمود ${i + 1}: خلية غير مفهومة «${value}»؛ رُفض الملف كاملاً.`,
+        );
     });
     const [rawDate, assignee, code] = columns.map((i) => (cells[i] ?? "").trim());
     const date = normalizeDigits(rawDate ?? "");
@@ -154,7 +158,10 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
       .trim(),
   );
   const dateCol = header.indexOf("التاريخ");
-  if (header.filter((h) => h === "التاريخ").length !== 1 || header.filter((h) => h === "اليوم").length > 1)
+  if (
+    header.filter((h) => h === "التاريخ").length !== 1 ||
+    header.filter((h) => h === "اليوم").length > 1
+  )
     throw new Error("رُفض الملف كاملاً: أعمدة التاريخ أو اليوم مكررة.");
   const dayCol = header.indexOf("اليوم");
   const skip = new Set(["التاريخ", "اليوم", ""]);
@@ -165,15 +172,19 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
   const prefix = `${year}-${String(month).padStart(2, "0")}-`;
   const out: DepartmentRow[] = [];
   const errors: string[] = [];
-  grid.slice(0, hIdx).forEach((row, r) => row.forEach((value, c) => {
-    if (value.trim()) errors.push(`السطر ${r + 1}، العمود ${c + 1}: خلية قبل العناوين غير مفهومة «${value}».`);
-  }));
+  grid.slice(0, hIdx).forEach((row, r) =>
+    row.forEach((value, c) => {
+      if (value.trim())
+        errors.push(`السطر ${r + 1}، العمود ${c + 1}: خلية قبل العناوين غير مفهومة «${value}».`);
+    }),
+  );
   const seen = new Set<string>();
   grid.slice(hIdx + 1).forEach((row, k) => {
     const line = hIdx + k + 2;
     if (row.every((c) => !c.trim())) return;
     row.forEach((value, c) => {
-      if (value.trim() && !header[c]) errors.push(`السطر ${line}، العمود ${c + 1}: خلية تحت عمود بلا عنوان «${value}».`);
+      if (value.trim() && !header[c])
+        errors.push(`السطر ${line}، العمود ${c + 1}: خلية تحت عمود بلا عنوان «${value}».`);
     });
     const date = normalizeDigits((row[dateCol] ?? "").trim());
     if (!validDate(date) || !date.startsWith(prefix)) {
@@ -183,11 +194,14 @@ export function readDepartmentGrid(grid: Grid, year: number, month: number): Dep
     const day = norm(row[dayCol] ?? "").replace(/[أإآ]/g, "ا");
     const weekdays = ["الاحد", "الاثنين", "الثلاثاء", "الاربعاء", "الخميس", "الجمعة", "السبت"];
     if (day && day !== weekdays[new Date(`${date}T12:00:00Z`).getUTCDay()])
-      errors.push(`السطر ${line}، العمود ${dayCol + 1}: اسم اليوم «${row[dayCol]}» غير مفهوم أو لا يطابق التاريخ.`);
+      errors.push(
+        `السطر ${line}، العمود ${dayCol + 1}: اسم اليوم «${row[dayCol]}» غير مفهوم أو لا يطابق التاريخ.`,
+      );
     for (const { h, i } of depts) {
       const cell = row[i] ?? "";
       const names = splitNames(cell);
-      if (cell.trim() && !names.length) errors.push(`السطر ${line}، ${h}: خلية غير فارغة بلا اسم مفهوم «${cell}».`);
+      if (cell.trim() && !names.length)
+        errors.push(`السطر ${line}، ${h}: خلية غير فارغة بلا اسم مفهوم «${cell}».`);
       for (const name of names) {
         const key = `${date}|${h}|${name}`;
         if (seen.has(key)) errors.push(`السطر ${line}: «${name}» مكرر في ${h}.`);
@@ -231,7 +245,8 @@ export function resolveFlatByCode(rows: ScheduleRow[], types: { code: string }[]
     if (matched.length !== 1 || !type || !name || !validDate(row.date)) return;
     const key = `${row.date}|${type.code}|${name}`;
     const first = seen.get(key);
-    if (first) return void errors.push(`${where}: مكرر مع ${first} (${name}، ${code}، ${row.date}).`);
+    if (first)
+      return void errors.push(`${where}: مكرر مع ${first} (${name}، ${code}، ${row.date}).`);
     seen.set(key, where);
     out.push({ date: row.date, department: type.code, name });
   });
@@ -250,7 +265,10 @@ export function missingAfterSave(
 ) {
   const codeById = new Map(types.map((t) => [t.id, normKey(t.code)]));
   const keys = new Set(
-    saved.map((s) => `${s.shift_date}|${codeById.get(s.shift_type_id ?? "") ?? ""}|${normKey(s.assignee_label)}`),
+    saved.map(
+      (s) =>
+        `${s.shift_date}|${codeById.get(s.shift_type_id ?? "") ?? ""}|${normKey(s.assignee_label)}`,
+    ),
   );
   return expected.filter((r) => !keys.has(`${r.date}|${normKey(r.department)}|${normKey(r.name)}`));
 }
