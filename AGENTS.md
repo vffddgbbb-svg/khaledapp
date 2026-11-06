@@ -18,3 +18,4 @@
 - Use the admin-gated save_shift RPC for manual shift creation and editing; enforce assignment uniqueness in the database so concurrent writes and imports cannot duplicate rows.
 - Validate all source cells before import RPC calls; reject unconsumed nonempty cells and overlapping HTML spans so read-back verification cannot hide source data loss.
 - Derive roster statistics from queried shifts and profile IDs or exact label identities; leave training years unclassified until dedicated approved storage exists, never overload scheduling fields for unrelated modules.
+- Exclude integration-generated modules from application lint formatting; managed files must not be rewritten merely to satisfy the app formatter.
